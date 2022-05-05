@@ -1,0 +1,9 @@
+
+MACRO_FUNC macro A
+exitm <( A ) >
+	endm
+MACRO_FUNC2 macro A,B
+exitm <( ( A ) + ( B ) ) >
+	endm
+S	EQU	MACRO_FUNC ( 4 )
+T	EQU	MACRO_FUNC2 ( 1 , 2 )

@@ -1,0 +1,23 @@
+name: Workflow
+
+on: [push, pull_request]
+
+jobs:
+  build-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: CMake configure
+        run: |
+          cmake -S . -B build
+      - name: CMake build
+        run: |
+          cmake --build build
+      - name: Test
+        run: |
+          cd build
+          ctest --verbose

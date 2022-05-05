@@ -1,0 +1,9 @@
+some_union	union 
+a	SDWORD	?
+b	float	?
+c	REAL8	?
+struct s
+a	SDWORD	?
+b	SDWORD	?
+ends
+some_union	ends

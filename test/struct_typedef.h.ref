@@ -1,0 +1,8 @@
+abc_t	struct 
+next	DWORD	?
+a	SDWORD	?
+abc_t	ends
+externdef item1: ptr s_abc
+externdef item2: ptr abc_t
+externdef item3: s_abc
+externdef item4: abc_t

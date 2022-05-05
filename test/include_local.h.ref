@@ -1,0 +1,3 @@
+
+	include struct_char.inc
+externdef name: SDWORD

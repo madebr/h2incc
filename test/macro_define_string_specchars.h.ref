@@ -1,0 +1,2 @@
+
+ABC	EQU	<"abc",0ah,"def",09h,"gh",0dh,"i",08h,"jkl">

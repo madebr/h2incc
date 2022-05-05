@@ -1,0 +1,3 @@
+ss	struct 
+a	SDWORD 100 dup (?)
+ss	ends

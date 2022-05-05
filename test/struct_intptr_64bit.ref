@@ -1,0 +1,5 @@
+somestruct	struct 
+a	QWORD	?
+b	QWORD	?
+c	QWORD	?
+somestruct	ends

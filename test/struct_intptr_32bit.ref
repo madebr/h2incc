@@ -1,0 +1,5 @@
+somestruct	struct 
+a	DWORD	?
+b	DWORD	?
+c	DWORD	?
+somestruct	ends

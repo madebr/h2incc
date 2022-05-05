@@ -1,0 +1,18 @@
+abc	struct 
+ifdef ABC
+a	SDWORD	?
+ifndef defined
+defined macro x
+ifdef x
+  exitm <1>
+else
+  exitm <0>
+endif
+endm
+endif
+elseif defined(DEF)
+b	SDWORD	?
+else 
+c	SDWORD	?
+endif 
+abc	ends

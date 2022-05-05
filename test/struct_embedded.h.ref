@@ -1,0 +1,10 @@
+struct1	struct 
+struct s1
+a	SDWORD	?
+b	SDWORD	?
+ends
+struct s2
+c	SDWORD	?
+d	SDWORD	?
+ends
+struct1	ends

@@ -1,0 +1,3 @@
+proto_func_t typedef proto  :SDWORD,:REAL8
+func_t typedef ptr proto_func_t
+my_sort proto :ptr void, :ptr void, :ptr func_t
