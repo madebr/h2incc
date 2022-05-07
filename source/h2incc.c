@@ -1008,7 +1008,7 @@ void ConvertTables() {
         }
         // convert string to lower case
         if (tabEntry->dwFlags & CF_CASE && tabEntry->pPtr != tabEntry->pDefault) {
-            char** pPtr = (char**)tabEntry->pPtr;
+            char** pPtr = *(char***)tabEntry->pPtr;
             while (*pPtr != NULL) {
                 strlwr(*pPtr);
                 pPtr += inc;
@@ -1017,13 +1017,13 @@ void ConvertTables() {
         // sort string table
         if (tabEntry->dwFlags & CF_SORT) {
             uint32_t count = 0;
-            char** pPtr = (char**)tabEntry->pPtr;
+            char** pPtr = *(char***)tabEntry->pPtr;;
             while (*pPtr != NULL) {
                 count++;
                 pPtr += inc;
             }
             ((struct SORTARRAY*)tabEntry->pPtr)->numItems = count;
-            qsort(((struct SORTARRAY*)tabEntry->pPtr)->pItems, count, inc * sizeof(char*), cmpproc);
+            qsort(*(char***)tabEntry->pPtr, count, inc * sizeof(char*), cmpproc);
         }
     }
 }

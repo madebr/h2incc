@@ -71,6 +71,7 @@ set(TEST_CASES
     typedef_enum_char_rbracket.h
     typedef_enum_int.h
     typedef_function.h
+    struct_member_protected_word.h
     union_simple.h
     voidfunction.h
 )

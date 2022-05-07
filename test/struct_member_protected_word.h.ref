@@ -1,0 +1,5 @@
+name_	struct 
+align_	DWORD	?
+eax_	DWORD	?
+ebx_	DWORD	?
+name_	ends

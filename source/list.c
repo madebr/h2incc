@@ -34,7 +34,7 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
     while (1) {
         uint32_t half = num / 2;
         char* mid = lo + half * width;
-        diff = compare(key, mid);
+        diff = compare(&key, mid);
         if (diff == 0) {
             if (res != NULL) {
                 *res = mid + width;
@@ -54,7 +54,7 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
                     return NULL;
                 }
             }
-            diff = compare(key, lo);
+            diff = compare(&key, lo);
             if (diff == 0) {
                 if (res != NULL) {
                     *res = lo + width;
@@ -162,10 +162,10 @@ void* FindItemList(struct LIST* pList, char* pszName) {
 }
 
 int cmpproc(const void* p1, const void* p2) {
-    const char* s1 = p1;
-    const char* s2 = p2;
+    const char*const * s1 = p1;
+    const char*const* s2 = p2;
 
-    return stricmp(s1, s2);
+    return stricmp(*s1, *s2);
 }
 
 void SortList(struct LIST* pList) {
