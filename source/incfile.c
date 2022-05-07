@@ -3408,7 +3408,7 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
         }
         xprintf(pIncFile, "@DefProto %s, %s, %s, %s, <", pszImpSpec, pszFuncName, pszCallConv, suffix);
     } else if (pIncFile->dwQualifiers & FQ_IMPORT) {
-        xprintf(pIncFile, "proto_%s tuypedef proto %s ", pszFuncName, pszCallConv);
+        xprintf(pIncFile, "proto_%s typedef proto %s ", pszFuncName, pszCallConv);
     } else {
         xprintf(pIncFile, "%s proto %s", TranslateName2(pIncFile, pszFuncName), pszCallConv);
     }
