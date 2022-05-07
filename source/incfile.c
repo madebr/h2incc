@@ -1936,7 +1936,7 @@ nextscan:
             }
             pszType = NULL;
             pszName = NULL;
-            write(pIncFile, "end\r\n");
+            write(pIncFile, "ends\r\n");
             debug_printf("%u: end of union\n", pIncFile->dwLine);
             goto nextitem;
         }
@@ -4409,7 +4409,7 @@ void parseline(struct INCFILE* pIncFile, char* pszLine, int bWeak) {
         if (c == '\0') {
             break;
         }
-        char* start_token = os;
+        char* start_token = os; // holds start of token
         if (c == '/' && is[1] == '/') {
             if (g_bIncludeComments) {
                 *os++ = PP_COMMENT;
@@ -4525,7 +4525,7 @@ int Parse_Line(struct INCFILE* pIncFile) {
             char c = *lineEnd;
             if (c == '\\') {
                 while (*lineEnd != '\0') {
-                    *lineEnd == ' ';
+                    *lineEnd = ' ';
                     lineEnd++;
                 }
                 weak = 1;

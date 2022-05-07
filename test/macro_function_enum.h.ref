@@ -1,0 +1,8 @@
+
+MACRO_FUNC macro A,B
+exitm <( A + B ) >
+	endm
+A = MACRO_FUNC(1,2)
+B = MACRO_FUNC(2,3)
+C = MACRO_FUNC(3,4)
+

@@ -52,6 +52,8 @@ set(TEST_CASES
     macro_define_string_specchars.h
     macro_define_string_vtab.h
     macro_function.h
+    macro_function_enum.h
+    macro_function_enum_multiline.h
     macro_ifdef.h
     struct_char.h
     struct_charp.h
