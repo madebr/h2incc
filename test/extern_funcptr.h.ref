@@ -1,1 +1,1 @@
-int proto :ptr some_func
+SDWORD proto :ptr some_func

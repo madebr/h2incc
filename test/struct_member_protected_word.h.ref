@@ -3,3 +3,11 @@ align_	DWORD	?
 eax_	DWORD	?
 ebx_	DWORD	?
 name_	ends
+name2	struct 
+align_	DWORD	?
+aligned	DWORD	?
+eax_	DWORD	?
+r00	DWORD	?
+ebx_	DWORD	?
+ecx3	ine	?
+name2	ends

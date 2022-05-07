@@ -6,3 +6,12 @@ struct name {
     int eax;
     int ebx;
 };
+
+struct name2 {
+    int align;
+    int aligned;
+    int eax;
+    int r00;
+    int ebx;
+    ine ecx3;
+};
