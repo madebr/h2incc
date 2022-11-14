@@ -12,7 +12,7 @@ if(H2INCC_TRACE)
     add_compile_definitions(_TRACE)
 endif()
 
-add_executable(h2incc
+add_library(h2incc_objects OBJECT
         source/h2incc.c
         source/h2incc.h
         source/incfile.c
@@ -21,20 +21,18 @@ add_executable(h2incc
         source/list.h
         source/util.h
 )
-add_executable(h2incc::h2incc ALIAS h2incc)
-set_target_properties(h2incc
+set_target_properties(h2incc_objects
     PROPERTIES
         C_STANDARD 99
         EXPORT_NAME h2incc
 )
 if(H2INCC_TRACE)
-    target_compile_definitions(h2incc
-        PRIVATE
-            _TRACE
-    )
+    target_compile_definitions(h2incc_objects PRIVATE _TRACE)
 endif()
-add_custom_command(
-    TARGET h2incc POST_BUILD
+
+add_executable(h2incc $<TARGET_OBJECTS:h2incc_objects>)
+add_executable(h2incc::h2incc ALIAS h2incc)
+add_custom_command(TARGET h2incc POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/h2incc.ini" "$<TARGET_FILE_DIR:h2incc>/h2incc.ini"
 )
 
