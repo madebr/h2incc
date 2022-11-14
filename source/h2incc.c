@@ -31,9 +31,6 @@ int g_argc;
 char** g_argv;
 char** g_envp;
 
-// char* g_pStringPool;                        // string pool memory (=heap)
-// char* g_pStringPoolMax;                     // string pool memory end
-// char* g_pStringPtr;                         // ptr to free string pool memory
 uint32_t g_rc;
 char* g_pszFilespec;                        // filespec cmdline param
 char* g_pszIniPath;                         // -C cmdline ini path
@@ -440,36 +437,6 @@ char g_szDir[256];
 char g_szName[256];
 char g_szExt[256];
 
-// alloc space in string pool
-
-// char* AllocSpace(uint32_t dwSize) {
-//     char* newStringPtr = g_pStringPtr + dwSize;
-//     if (newStringPtr > g_pStringPoolMax) {
-//         return NULL;
-//     }
-//     char* result = g_pStringPtr;
-//     g_pStringPtr = newStringPtr;
-//     return result;
-// }
-
-
-// add string to string pool
-// each string has a DWORD value associated with it
-// which is stored behind the terminating 00
-
-// char* AddString(char* pszString, uint32_t dwValue) {
-//     uint32_t dwSize = strlen(pszString) + 1;
-//     char* newStringPtr = g_pStringPtr + dwSize + sizeof(dwValue);
-//     if (newStringPtr > g_pStringPoolMax) {
-//         return NULL;
-//     }
-//     strcpy(g_pStringPtr, pszString);
-//     memcpy(g_pStringPtr + dwSize, &dwValue, sizeof(dwValue));
-//     char* result = g_pStringPtr;
-//     g_pStringPtr = (char*)(((uintptr_t)newStringPtr + sizeof(void*) - 1) & ~(sizeof(void*) - 1));
-//     return result;
-// }
-
 char* AddString(char* pszString) {
     size_t stringSize = strlen(pszString) + 1;
     size_t allocSize = stringSize;
@@ -481,9 +448,6 @@ char* AddString(char* pszString) {
 void DestroyString(char* pszString) {
     free(pszString);
 }
-
-// void string_free(void* pMem) {
-// }
 
 // scan command line for options
 
@@ -650,16 +614,9 @@ size_t LoadStrings(char* pszTypes, char** pTable, char* stringTable, int bKeyOnl
             *pTable = stringTable;
             stringTable += lenKey + 1;
             pTable++;
-            // debug_printf("added string \"%s\"\n", pTable[-1]);
-            // if (pszTypes[lenKey - 1] == '\r') {
-            //     pszTypes[lenKey - 1] = '\0';
-            // }
         }
         pszTypes = nextStr;
         while (*pszTypes != '\0' && (*pszTypes == '\n' || *pszTypes == '\r')) {
-            // if (pTable != NULL) {
-            //     *pszTypes = '\0';
-            // }
             pszTypes++;
         }
         if (match == '=') {
@@ -676,17 +633,9 @@ size_t LoadStrings(char* pszTypes, char** pTable, char* stringTable, int bKeyOnl
                 *pTable = stringTable;
                 stringTable += lenVal + 1;
                 pTable++;
-                // debug_printf("added string \"%s\"\n", pTable[-1]);
-                // *pTable = &pszTypes[1];
-                // if (pszTypes[lenVal - 1] == '\r') {
-                //     pszTypes[lenVal - 1] = '\0';
-                // }
             }
             pszTypes = nextStr;
             while (*pszTypes != '\0' && (*pszTypes == '\n' || *pszTypes == '\r')) {
-                // if (pTable != NULL) {
-                //     *pszTypes = '\0';
-                // }
                 pszTypes++;
             }
         }
@@ -771,36 +720,12 @@ void FreeProfileData(void) {
     }
 }
 
-static char* GetIniPath() {
-#if 0
-    if (g_pszIniPath == NULL) {
-        return ".";
-    } else {
-        return g_pszIniPath;
-    }
-#else
-    return NULL;
-#endif
-}
-
-#if 0
-char* ReadIniFile(char* pszIniDir, size_t* pSize) {
-    char szIniPath[MAX_PATH];
-    char* cwd;
-    FILE* f;
-    size_t dwSize;
-    char* pContents;
-
-    strcpy(szIniPath, pszIniDir);
-    strcat(szIniPath, "/");
-    strcat(szIniPath, "h2incc.ini");
-#else
 char* ReadIniFile(char* szIniPath, size_t* pSize) {
     char* cwd;
     FILE* f;
     size_t dwSize;
     char* pContents;
-#endif
+
     f = fopen(szIniPath, "r");
     if (f == NULL) {
         if (g_bVerbose) {
@@ -1156,7 +1081,6 @@ void ProcessFiles(char* pszFileSpec) {
 #endif
 
         DestroyAnalyzerData();
-        // g_pStringPtr = g_pStringPool;
 #if 0
     } while (FindNextFile(hFFHandle, &fd));
     FindClose(hFFHandle);
@@ -1172,7 +1096,7 @@ exit:
 
 int main(int argc, char** argv, char** envp) {
     size_t dwSize;
-    char* pIniFile;
+    char* pIniContents;
     char* lpFilePart;
     char szOutDir[MAX_PATH];
     char* pszIniPath;
@@ -1190,41 +1114,23 @@ int main(int argc, char** argv, char** envp) {
     }
 
     // read h2incc.ini
-#if 0
-    pszIni = GetIniPath();
-    pIniFile = ReadIniFile(pszIniPath, &dwSize);
-#else
-    pszIniPath = g_pszIniPath;
-#endif
-    pIniFile = ReadIniFile(pszIniPath, &dwSize);
-    LoadTablesFromProfile(pIniFile, dwSize);
-    free(pIniFile);
-    pIniFile = NULL;
+    pIniContents = ReadIniFile(g_pszIniPath, &dwSize);
+    LoadTablesFromProfile(pIniContents, dwSize);
+    free(pIniContents);
+    pIniContents = NULL;
     ConvertTables();
     if (g_pszFilespec == NULL) {
 main_er:
         fprintf(stderr, "%s", szUsage);
         goto exit;
     }
-    // g_pStringPool = malloc(STRINGPOOLMAX);
-    // if (g_pStringPool == NULL) {
-    //     printf("fatal error: out of memory\n");
-    //     goto exit;
-    // }
-    // g_pStringPtr = g_pStringPool;
-    // g_pStringPoolMax = g_pStringPtr + STRINGPOOLMAX;
     if (g_pszOutDir == NULL) {
         g_pszOutDir = ".";
     }
-    // GetFullPathName(g_pszOutDir, MAX_PATH, szOutDir, &lpFilePart);
-    // g_pszOutDir = szOutDir;
 
     ProcessFiles(g_pszFilespec);
 
 exit:
     FreeProfileData();
-    // if (g_pStringPool != NULL) {
-    //     free(g_pStringPool);
-    // }
     return g_rc;
 }

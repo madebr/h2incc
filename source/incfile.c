@@ -4678,7 +4678,6 @@ struct INCFILE* GetParentIncFile(struct INCFILE* pIncFile) {
 struct INCFILE* CreateIncFile(char* pszFileName, struct INCFILE* pParent) {
     FILE* file;
     size_t dwFileSize;
-    // char szFileName[MAX_PATH];
     struct INCFILE* pIncFile;
 
     pIncFile = malloc(sizeof(struct INCFILE));
@@ -4686,7 +4685,6 @@ struct INCFILE* CreateIncFile(char* pszFileName, struct INCFILE* pParent) {
         goto exit;
     }
     memset(pIncFile, 0, sizeof(struct INCFILE));
-    // _splitpath(pszFileName, NULL, NULL, g_szName, g_szExt);
     file = fopen(pszFileName, "r");
     if (file == NULL) {
         if (g_pszIncDir) {
@@ -4704,7 +4702,7 @@ struct INCFILE* CreateIncFile(char* pszFileName, struct INCFILE* pParent) {
         }
         fprintf(stderr, "cannot open file %s\n", pszFileName);
         free(pIncFile);
-        pIncFile = 0;
+        pIncFile = NULL;
         goto exit;
     }
 file_exists:
@@ -4755,9 +4753,7 @@ exit:
 // destructor include file object
 
 void DestroyIncFile(struct INCFILE* pIncFile) {
-    debug_printf("free buffer 1 %p for %s\n", pIncFile->pBuffer1, pIncFile->pszFileName);
     free(pIncFile->pBuffer1);
-    debug_printf("free buffer 2 %p for %s\n", pIncFile->pBuffer2, pIncFile->pszFileName);
     free(pIncFile->pBuffer2);
     if (pIncFile->pDefs != NULL) {
         DestroyList(pIncFile->pDefs);
