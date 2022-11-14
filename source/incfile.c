@@ -42,6 +42,7 @@ struct INCFILE {
     char*           pszImpSpec;             //
     char*           pszCallConv;            //
     char*           pszEndMacro;            //
+    char*           pszPrefix;              //
     char*           pszStructName;          // current struct/union/class name
     uint32_t        dwBlockLevel;           // block level where pszEndMacro becomes active
     uint32_t        dwQualifiers;           //
@@ -1739,7 +1740,12 @@ int IsFunction(struct INCFILE* pIncFile) {
             break;
         }
         if (/**token == '*' ||*/ *token == '(') {
-            bRC = 1;
+            token = GetNextToken(pIncFile);
+            if (token != NULL && *token == '*') {
+                bRC = 0;
+            } else {
+                bRC = 1;
+            }
             break;
         }
     }
@@ -2150,6 +2156,7 @@ nextscan:
         }
 
         if (strcmp(pszToken, "(") == 0 && bMode != DT_ENUM) {
+            bFunction = 1;
             if (IsFunctionPtr(pIncFile)) {
                 debug_printf("%u: GetDeclaration, function ptr found\n", pIncFile->dwLine);
                 char* name;
@@ -2166,6 +2173,7 @@ nextscan:
                         sprintf(szType, "p%s_%s", pszParent, pszName);
                         pszType = szType;
                     }
+                    bFunction = 0;
                 } else {
                     goto error;
                 }
@@ -2188,7 +2196,6 @@ nextscan:
                     goto error;
                 }
             }
-            bFunction = 1;
             goto nextitem;
         }
 
@@ -2235,6 +2242,10 @@ nextitem:
     if (bMode == DT_EXTERN || bStatic) {
         if (pszName != NULL) {
             char* transName = TranslateName(pszName, NULL, NULL);
+            if (pIncFile->pszPrefix != NULL) {
+                write(pIncFile, pIncFile->pszPrefix);
+                pIncFile->pszPrefix = NULL;
+            }
             if (bStatic) {
                 xprintf(pIncFile, ";externdef syscall ?%s@%s@@___", transName, pszParent);
             } else {
@@ -3345,7 +3356,7 @@ void ParseExtern(struct INCFILE* pIncFile) {
             write(pIncFile, ";extern \"C++\"\r\n");
             break;
         }
-        write(pIncFile, "externdef ");
+        pIncFile->pszPrefix = "externdef ";
         if (pIncFile->bC) {
             write(pIncFile, "c ");
         }

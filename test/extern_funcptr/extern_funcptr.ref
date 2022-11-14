@@ -1,1 +1,3 @@
-SDWORD proto :ptr some_func
+proto_some_func typedef proto  :DWORD,:ptr 
+p_some_func typedef ptr proto_some_func
+externdef some_func: p_some_func
