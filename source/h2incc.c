@@ -702,8 +702,8 @@ void LoadTablesFromProfile(char* pszInput, size_t dwSize) {
             if (nb != 0) {
                 char* textBuffer = malloc(textLength);
                 tabEntry->pStorage = textBuffer;
-                *(char***)tabEntry->pPtr = malloc((nb + 1) * sizeof(char**));
-                memset(*(char***)tabEntry->pPtr, 0, (nb + 1) * sizeof(char**));
+                *(char***)tabEntry->pPtr = malloc((nb + 1) * sizeof(char*));
+                memset(*(char**)tabEntry->pPtr, 0, (nb + 1) * sizeof(char*));
                 if (tabEntry->pPtr != NULL) {
                     LoadStrings(start, *(char***)tabEntry->pPtr, textBuffer, tabEntry->dwFlags & CF_KEYS, &textLength);
                 }
