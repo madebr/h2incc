@@ -744,8 +744,8 @@ char* ReadIniFile(char* szIniPath, size_t* pSize) {
         return NULL;
     }
     fread(pContents, 1, dwSize, f);
-    pContents[dwSize] = '\0';
     fclose(f);
+    pContents[dwSize] = '\0';
     *pSize = dwSize;
     return pContents;
 }
@@ -958,11 +958,11 @@ int PrintTable(struct LIST* pTable, char* pszFormatString) {
     count = 0;
     if (pTable != NULL) {
         SortList(pTable);
-        char* pItem = GetItemList(pTable, NULL);
+        char* pItem = GetNextItemList(pTable, NULL);
         while (pItem != NULL) {
             count++;
             fprintf(stderr, pszFormatString, ((struct NAMEITEM*)pItem)->pszName, &pItem[1]);
-            pItem = GetItemList(pTable, (void*)pItem);
+            pItem = GetNextItemList(pTable, (void*)pItem);
         }
     }
     return count;

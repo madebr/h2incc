@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LIST_START(L) (&(((struct LIST*)(L))[1]))
 
 struct LIST {
     void *pFree;        // next free item in this block
@@ -14,8 +15,8 @@ struct LIST {
 };
 
 static uint32_t GetNumItems(struct LIST* pList) {
-    size_t size = (char*)pList->pFree - (char*)(&pList[1]);
-    return size / pList-> dwSize;
+    size_t size = (char*)pList->pFree - (char*)LIST_START(pList);
+    return size / pList->dwSize;
 }
 
 // unlike the standard CRT bsearch this bsearch returns
@@ -75,22 +76,16 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
     }
 }
 
-#define LIST_START(LIST) ((void*)&LIST[1])
-
-// constructor
-
-struct LIST* CreateList(uint32_t dwNumItems, uint32_t dwItemSize) {
-    struct LIST* pList = malloc(sizeof(struct LIST) + dwItemSize * dwNumItems);
+struct LIST* CreateList(uint32_t numItems, uint32_t itemSize) {
+    struct LIST* pList = malloc(sizeof(struct LIST) + itemSize * numItems);
     if (pList == NULL) {
         return NULL;
     }
     pList->pFree = LIST_START(pList);
-    pList->dwSize = dwItemSize;
-    pList->pMax = (char*)pList + sizeof(struct LIST) + dwItemSize * dwNumItems;
+    pList->dwSize = itemSize;
+    pList->pMax = (char*)pList + sizeof(struct LIST) + itemSize * numItems;
     return pList;
 }
-
-// destructor
 
 void DestroyList(struct LIST* pList) {
     if (pList != NULL) {
@@ -98,8 +93,7 @@ void DestroyList(struct LIST* pList) {
     }
 }
 
-
-int cmpproc2(const void* p1, const void* p2) {
+static int cmpproc2(const void* p1, const void* p2) {
     return strcmp(((struct NAMEITEM*)p1)->pszName, ((struct NAMEITEM*)p2)->pszName);
 }
 
@@ -124,8 +118,8 @@ void* AddItemList(struct LIST* pList, char* pItem) {
     return pos;
 }
 
-
 // add an array of - already sorted! - items to a list
+
 void* AddItemArrayList(struct LIST* pList, struct NAMEITEM *pItems, uint32_t dwNum) {
     char* newPFree = (char*)pList->pFree + dwNum * pList->dwSize;
     if (newPFree > (char*)pList->pFree) {
@@ -137,9 +131,9 @@ void* AddItemArrayList(struct LIST* pList, struct NAMEITEM *pItems, uint32_t dwN
     return prevPFree;
 }
 
-// get an item in a list
+// get the next item in a list
 
-void* GetItemList(struct LIST* pList, struct NAMEITEM* pPrevItem) {
+void* GetNextItemList(struct LIST* pList, struct NAMEITEM* pPrevItem) {
     void* res;
     if (pPrevItem == NULL) {
         res = LIST_START(pList);
@@ -155,10 +149,8 @@ void* GetItemList(struct LIST* pList, struct NAMEITEM* pPrevItem) {
 // find an item in a list
 
 void* FindItemList(struct LIST* pList, char* pszName) {
-    struct NAMEITEM tmpitem;
-    tmpitem.pszName = pszName;
     void* pNewItem;
-    return list_bsearch(&tmpitem, LIST_START(pList), GetNumItems(pList), pList->dwSize, cmpproc2, &pNewItem);
+    return list_bsearch((struct NAMEITEM*)pszName, LIST_START(pList), GetNumItems(pList), pList->dwSize, cmpproc2, &pNewItem);
 }
 
 int cmpproc(const void* p1, const void* p2) {

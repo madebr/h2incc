@@ -15,13 +15,13 @@ struct LISTITEM {
     } value;
 };
 
-struct LIST* CreateList(uint32_t, uint32_t);
+struct LIST* CreateList(uint32_t numItems, uint32_t itemSize);
 void DestroyList(struct LIST*);
 void SortList(struct LIST*);
 void SortCSList(struct LIST*);
 void* AddItemList(struct LIST*, char* pszName);
 void* AddItemArrayList(struct LIST*, struct NAMEITEM* pItem, uint32_t dwItems);
-void* GetItemList(struct LIST*, struct NAMEITEM* pItem);
+void* GetNextItemList(struct LIST*, struct NAMEITEM* pItem);
 void* FindItemList(struct LIST*, char* pszName);
 uint32_t GetItemSizeList(struct LIST*);
 uint32_t GetNumItemsList(struct LIST*);

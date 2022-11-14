@@ -126,13 +126,6 @@ struct LinkedList {
     uint8_t this_size;
 };
 
-#define StackList LinkedList
-#define CreateStackList CreateLinkedList
-#define DestroyStackList DestroyLinkedList
-#define AddStackList AddLinkedList
-#define GetNumItemsStackList GetNumItemsLinkedList
-#define GetItemStackList GetItemLinkedList
-
 struct LinkedList* CreateLinkedList(void) {
     struct LinkedList* res = malloc(sizeof(struct LinkedList));
     res->next = NULL;
@@ -199,7 +192,6 @@ void IsElIfNP(struct INCFILE*);
 void IsElseNP(struct INCFILE*);
 void IsEndifNP(struct INCFILE*);
 void IsIfNP(struct INCFILE*);
-
 
 // preprocessor command tab
 // commands not listed here will be commented out
@@ -763,7 +755,7 @@ void convertline(struct INCFILE* pIncFile, char* pszName) {
     int bExpression;
     char* pszValue;
     char* pszOut;
-    struct StackList* ppszItems;
+    struct LinkedList* ppszItems;
     uint32_t dwCnt;
     uint32_t dwEsp;
     uint32_t dwTmp[2];
@@ -800,10 +792,10 @@ void convertline(struct INCFILE* pIncFile, char* pszName) {
             write(pIncFile, "<");
         }
         pszOut = pIncFile->pszOut;
-        ppszItems = CreateStackList();
+        ppszItems = CreateLinkedList();
         dwCnt = 0;
         while (pszValue != NULL) {
-            AddStackList(ppszItems, (uintptr_t)pszValue);
+            AddLinkedList(ppszItems, (uintptr_t)pszValue);
             if (dwCnt != 0) {
                 write(pIncFile, " ");
             }
@@ -818,11 +810,11 @@ void convertline(struct INCFILE* pIncFile, char* pszName) {
             if (strcmp(pszOut, "__declspec ( dllimport )") == 0) {
                 convertline_register_qualifier(pIncFile, pszOut, FQ_IMPORT);
             } else {
-                int nbStackItems = GetNumItemsStackList(ppszItems);
+                int nbStackItems = GetNumItemsLinkedList(ppszItems);
                 for (int i = 0; i < nbStackItems; i++) {
-                    char* item = (char*)GetItemStackList(ppszItems, i);
+                    char* item = (char*)GetItemLinkedList(ppszItems, i);
 #ifdef _DEBUG
-                    fprintf(stderr, "getting stacklist item %X: %s\n", i, item);
+                    fprintf(stderr, "getting linkedlist item %X: %s\n", i, item);
 #endif
                     struct LISTITEM* qualifierListItem = FindItemList(g_pQualifiers, item);
                     if (qualifierListItem != NULL) {
@@ -840,7 +832,7 @@ void convertline(struct INCFILE* pIncFile, char* pszName) {
     }
     WriteComment(pIncFile);
     write(pIncFile, "\r\n");
-    DestroyStackList(ppszItems);
+    DestroyLinkedList(ppszItems);
 }
 
 void GetInterfaceName(char* pszName, char* pszInterface) {
@@ -1521,11 +1513,11 @@ char* TranslateName(char* pszName, char* pszOut, int *bTranslateHappened) {
     return pszName;
 }
 
-void WriteExpression(struct INCFILE* pIncFile, struct StackList* pExpression) {
-    uint32_t count = GetNumItemsStackList(pExpression);
+void WriteExpression(struct INCFILE* pIncFile, struct LinkedList* pExpression) {
+    uint32_t count = GetNumItemsLinkedList(pExpression);
     if (count > 0) {
         for (uint32_t i = 0; i < count; i++) {
-            write(pIncFile, (char*)GetItemStackList(pExpression, i));
+            write(pIncFile, (char*)GetItemLinkedList(pExpression, i));
         }
     } else {
         write(pIncFile, "0");
@@ -1534,7 +1526,7 @@ void WriteExpression(struct INCFILE* pIncFile, struct StackList* pExpression) {
 
 // pszName may be NULL
 
-void AddMember(struct INCFILE* pIncFile, char* pszType, char* pszName, struct StackList* pszDup, int bIsStruct) {
+void AddMember(struct INCFILE* pIncFile, char* pszType, char* pszName, struct LinkedList* pszDup, int bIsStruct) {
     debug_printf("%u: AddMember %s %s\n", pIncFile->dwLine, pszType, pszName);
     if (pszName != NULL) {
         int bTranslated;
@@ -1551,7 +1543,7 @@ void AddMember(struct INCFILE* pIncFile, char* pszType, char* pszName, struct St
     if (pszDup != NULL) {
         write(pIncFile, " ");
         WriteExpression(pIncFile, pszDup);
-        DestroyStackList(pszDup);
+        DestroyLinkedList(pszDup);
         write(pIncFile, " dup (");
     } else {
         write(pIncFile, "\t");
@@ -1859,7 +1851,7 @@ char* GetDeclaration(struct INCFILE* pIncFile, char* pszToken, char* pszParent, 
     uint32_t dwNameFlags;
     char* pszType;
     char* pszName;
-    struct StackList* pszDup;
+    struct LinkedList* pszDup;
     char* pszRecordType;
     char* pszBits;
     char* pszEndToken;
@@ -2133,7 +2125,7 @@ nextscan:
         }
 
         if (strcmp(pszToken, "[") == 0) {
-            pszDup = CreateStackList();
+            pszDup = CreateLinkedList();
             while (1) {
                 char* token = GetNextToken(pIncFile);
                 if (token == NULL || strcmp(token, ";") == 0) {
@@ -2142,7 +2134,7 @@ nextscan:
                 if (strcmp(token, "]") == 0) {
                     break;
                 }
-                AddStackList(pszDup, (uintptr_t)token);
+                AddLinkedList(pszDup, (uintptr_t)token);
             }
             goto nextitem;
         }   // '['
@@ -2478,27 +2470,27 @@ nextitem:
     return 0;
 }
 
-int HasVirtualBase(struct StackList* pszInherit) {
-    uint32_t nb = GetNumItemsStackList(pszInherit);
+int HasVirtualBase(struct LinkedList* pszInherit) {
+    uint32_t nb = GetNumItemsLinkedList(pszInherit);
 
     for (uint32_t i = 0; i < nb; i++) {
-        if (strcmp((char*)GetItemStackList(pszInherit, i), "virtual") == 0) {
+        if (strcmp((char*)GetItemLinkedList(pszInherit, i), "virtual") == 0) {
             return 1;
         }
     }
     return 0;
 }
 
-void WriteInherit(struct INCFILE* pIncFile, struct StackList* pszInherit, int bPreClass) {
+void WriteInherit(struct INCFILE* pIncFile, struct LinkedList* pszInherit, int bPreClass) {
     int bVirtual;
     int bVbtable;
     char* pszToken;
 
-    uint32_t nbItems = GetNumItemsStackList(pszInherit);
+    uint32_t nbItems = GetNumItemsLinkedList(pszInherit);
     bVirtual = 0;
     bVbtable = 0;
     for (uint32_t i = 0; i < nbItems; i++) {
-        pszToken = (char*)GetItemStackList(pszInherit, i);
+        pszToken = (char*)GetItemLinkedList(pszInherit, i);
         if (strcmp(pszToken, "virtual") == 0) {
             if (bPreClass && !bVbtable) {
                 write(pIncFile, "DWORD ?\t;vbtable\r\n");
@@ -2535,7 +2527,7 @@ int ParseTypedefUnionStruct(struct INCFILE* pIncFile, char* pszToken, int bIsCla
     char* pszName;
     char* pszType;
     char* pszTag;
-    struct StackList* pszInherit;
+    struct LinkedList* pszInherit;
     char* pszSuffix;
     char* pszAlignment;
     int bSkipName;
@@ -2585,9 +2577,9 @@ int ParseTypedefUnionStruct(struct INCFILE* pIncFile, char* pszToken, int bIsCla
             }
             pszToken = token;
             if (pszInherit == NULL) {
-                pszInherit = CreateStackList();
+                pszInherit = CreateLinkedList();
             }
-            AddStackList(pszInherit, (uintptr_t)pszToken);
+            AddLinkedList(pszInherit, (uintptr_t)pszToken);
         }
     }
     debug_printf("%u: ParseTypedefUnionStruct, token '%s' found\n", pIncFile->dwLine, token);
@@ -4491,7 +4483,7 @@ void parseline(struct INCFILE* pIncFile, char* pszLine, int bWeak) {
 // 4. adjust m_pszIn
 // return line length in eax (0 is EOF)
 
-int Parse_Line(struct INCFILE* pIncFile) {
+size_t Parse_Line(struct INCFILE* pIncFile) {
     char* is = pIncFile->pszIn;
     while (*is == ' ' && *is == '\t') {
         is++;
@@ -4540,7 +4532,7 @@ int Parse_Line(struct INCFILE* pIncFile) {
     }
 
     parseline(pIncFile, origIs, weak);
-    int res = is - pIncFile->pszIn;
+    size_t res = is - pIncFile->pszIn;
     pIncFile->pszIn = is;
     return res;
 }
@@ -4638,10 +4630,10 @@ int WriteDefIncFile(struct INCFILE* pIncFile, char* pszFileName) {
     if (file != NULL) {
         fprintf(file, "LIBRARY\r\n");
         fprintf(file, "EXPORTS\r\n");
-        struct NAMEITEM* item = (struct NAMEITEM*) GetItemList(pIncFile->pDefs, 0);
+        struct NAMEITEM* item = (struct NAMEITEM*) GetNextItemList(pIncFile->pDefs, 0);
         while (item != NULL) {
             fprintf(file, " \"%s\"\r\n", item->pszName);
-            item = GetItemList(pIncFile->pDefs, item);
+            item = GetNextItemList(pIncFile->pDefs, item);
         }
         fclose(file);
         rc = 1;
