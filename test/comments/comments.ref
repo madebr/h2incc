@@ -1,0 +1,9 @@
+;// driver: args=-c
+;// driver: expected=success
+;// driver: reference=comments.ref
+;// important function
+;*ok*
+func proto :SDWORD
+;// do not do this
+;// but do that
+;** ok **

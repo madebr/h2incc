@@ -61,24 +61,32 @@ def main():
     cmd = [str(args.h2incc), str(args.case)] + h2incc_args
 
     logger.info("expected: %r", expected)
-    logger.info("reference_path: %r", reference_path)
+    logger.info("reference_path: %s", reference_path)
     logger.info("cmd: `%s`", shlex.join(cmd))
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True)
+    result_bytes = result.stdout
+    normalized_result_bytes = result_bytes.replace(b"\r\n", b"\n")
+    logger.info("result bytes = %r", result_bytes)
+    logger.info("normalized result bytes = %r", normalized_result_bytes)
+
     if expected == ExpectedResult.Success and result.returncode != 0:
         raise ValueError(f"return code was {result.returncode}, expected 0")
 
-    logger.debug("output=%r", result.stdout)
-
     if reference_path:
         if args.update:
-            with reference_path.open("w") as f:
-                f.write(result.stdout)
+            with reference_path.open("wb") as f:
+                f.write(result_bytes)
 
-        with reference_path.open() as f:
-            reference = f.read()
-        logger.debug("reference=%r", reference)
-        if result.stdout != reference:
+        with reference_path.open("rb") as f:
+            reference_bytes = f.read()
+
+        normalized_reference_bytes = reference_bytes.replace(b"\r\n", b"\n")
+
+        logger.info("reference bytes = %r", reference_bytes)
+        logger.info("normalized reference bytes = %r", normalized_reference_bytes)
+
+        if normalized_result_bytes != normalized_reference_bytes:
             raise ValueError
 
 
