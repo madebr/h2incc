@@ -59,7 +59,6 @@ install(EXPORT h2incc_targets
 )
 install(
     FILES
-        cmake/h2incc-commands.cmake
         "${CMAKE_CURRENT_BINARY_DIR}/h2incc-config.cmake"
     DESTINATION "${H2INCC_INSTALL_CMAKEDIR}"
 )
