@@ -32,8 +32,9 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
         }
         return NULL;
     }
+    uint32_t num_left = num;
     while (1) {
-        uint32_t half = num / 2;
+        uint32_t half = num_left / 2;
         char* mid = lo + half * width;
         diff = compare(&key, mid);
         if (diff == 0) {
@@ -42,18 +43,18 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
             }
             return mid;
         } else if (diff < 0) {
-            num = half;
+            num_left = half;
             hi = mid;
         } else {
-            num = num - half - 1;
+            num_left = num_left - half - 1;
             lo = mid + width;
         }
-        if (num == 0) {
+        if (num_left == 0) {
             if ((char*)lo >= (char*)base + num * width) {
                 if (res != NULL) {
                     *res = base + num * width;
-                    return NULL;
                 }
+                return NULL;
             }
             diff = compare(&key, lo);
             if (diff == 0) {
