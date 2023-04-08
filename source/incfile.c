@@ -393,6 +393,9 @@ void write(struct INCFILE* pIncFile, const char* pszText) {
 }
 
 int IsNewLine(struct INCFILE* pIncFile) {
+    if (pIncFile->pszOut == pIncFile->pszOutStart) {
+        return 1;
+    }
     return pIncFile->pszOut[-1] == '\n';
 }
 
