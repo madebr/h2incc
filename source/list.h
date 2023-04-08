@@ -28,4 +28,7 @@ uint32_t GetNumItemsList(struct LIST*);
 
 void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*compare)(const void*, const void*), void** res);
 
+// For debug purposes
+void PrintList(struct LIST *pList);
+
 #endif

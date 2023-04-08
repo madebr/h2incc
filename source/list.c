@@ -3,6 +3,7 @@
 #include "util.h"
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -178,4 +179,10 @@ uint32_t GetItemSizeList(struct LIST* pList) {
 
 uint32_t GetNumItemsList(struct LIST* pList) {
     return GetNumItems(pList);
+}
+
+void PrintList(struct LIST *pList) {
+    for (uint32_t i = 0; i < GetNumItems(pList); i++) {
+        printf("%d -> %s\n", i, ((struct NAMEITEM*)(((char*)&pList[1]) + i * pList->dwSize))->pszName);
+    }
 }
