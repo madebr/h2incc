@@ -2,7 +2,6 @@
 #include "h2incc.h"
 #include "util.h"
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +14,7 @@ struct LIST {
     uint32_t dwSize;    // size of 1 item in list
 };
 
-static uint32_t GetNumItems(struct LIST* pList) {
+static uint32_t GetNumItems(const struct LIST* pList) {
     size_t size = (char*)pList->pFree - (char*)LIST_START(pList);
     return size / pList->dwSize;
 }
@@ -38,17 +37,12 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
         uint32_t half = num_left / 2;
         char* mid = lo + half * width;
         diff = compare(&key, mid);
-        if (diff == 0) {
-            if (res != NULL) {
-                *res = mid + width;
-            }
-            return mid;
-        } else if (diff < 0) {
-            num_left = half;
-            hi = mid;
-        } else {
+        if (diff >= 0) {
             num_left = num_left - half - 1;
             lo = mid + width;
+        } else {
+            num_left = half;
+            hi = mid;
         }
         if (num_left == 0) {
             if ((char*)lo >= (char*)base + num * width) {
@@ -63,14 +57,14 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
                     *res = lo + width;
                 }
                 return lo;
-            } else if (diff < 0) {
+            } else if (diff > 0) {
                 if (res != NULL) {
-                    *res = lo;
+                    *res = lo + width;
                 }
                 return NULL;
             } else {
                 if (res != NULL) {
-                    *res = lo + width;
+                    *res = lo;
                 }
                 return NULL;
             }
@@ -104,13 +98,12 @@ static int cmpproc2(const void* p1, const void* p2) {
 
 void* AddItemList(struct LIST* pList, char* pItem) {
     if (pList->pFree == pList->pMax) {
-        assert(0);
-        return NULL;
+        abort();
     }
     struct NAMEITEM tmpItem;
     tmpItem.pszName = pItem;
     char* newpos = NULL;
-    char* pos = list_bsearch(&tmpItem, LIST_START(pList), GetNumItems(pList), pList->dwSize, cmpproc2, (void**)&newpos);
+    char* pos = list_bsearch(pItem, LIST_START(pList), GetNumItems(pList), pList->dwSize, cmpproc2, (void**)&newpos);
     if (pos == NULL) {
         pos = newpos;
     }
@@ -170,18 +163,17 @@ void SortList(struct LIST* pList) {
 
 void SortCSList(struct LIST* pList) {
     qsort(LIST_START(pList), GetNumItems(pList), pList->dwSize, cmpproc2);
-
 }
 
-uint32_t GetItemSizeList(struct LIST* pList) {
+uint32_t GetItemSizeList(const struct LIST* pList) {
     return pList->dwSize;
 }
 
-uint32_t GetNumItemsList(struct LIST* pList) {
+uint32_t GetNumItemsList(const struct LIST* pList) {
     return GetNumItems(pList);
 }
 
-void PrintList(struct LIST *pList) {
+void PrintList(const struct LIST *pList) {
     for (uint32_t i = 0; i < GetNumItems(pList); i++) {
         printf("%d -> %s\n", i, ((struct NAMEITEM*)(((char*)&pList[1]) + i * pList->dwSize))->pszName);
     }

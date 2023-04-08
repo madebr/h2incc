@@ -23,12 +23,12 @@ void* AddItemList(struct LIST*, char* pszName);
 void* AddItemArrayList(struct LIST*, struct NAMEITEM* pItem, uint32_t dwItems);
 void* GetNextItemList(struct LIST*, struct NAMEITEM* pItem);
 void* FindItemList(struct LIST*, char* pszName);
-uint32_t GetItemSizeList(struct LIST*);
-uint32_t GetNumItemsList(struct LIST*);
+uint32_t GetItemSizeList(const struct LIST*);
+uint32_t GetNumItemsList(const struct LIST*);
 
 void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*compare)(const void*, const void*), void** res);
 
 // For debug purposes
-void PrintList(struct LIST *pList);
+void PrintList(const struct LIST *pList);
 
 #endif
