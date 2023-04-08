@@ -1,4 +1,3 @@
-
 MACRO_FUNC macro A
 exitm <( A ) >
 	endm

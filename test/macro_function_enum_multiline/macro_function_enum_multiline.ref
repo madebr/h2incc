@@ -1,4 +1,3 @@
-
 SOME_FUNC macro A,B,C,D
 exitm <( ( A + B ) + ( C + D ) ) >
 	endm
