@@ -47,6 +47,12 @@ struct ITEM_STRINT {
     intptr_t value;
 };
 
+struct ITEM_MACROINFO {
+    char *key;
+    intptr_t flags;
+    intptr_t value2;
+};
+
 int cmpproc(const void*, const void*);
 char* AddString(char* pszString);
 void DestroyString(char* pszString);
@@ -77,14 +83,14 @@ extern struct SORTARRAY g_ReservedWords;
 extern struct SORTARRAY g_KnownStructures;
 extern struct SORTARRAY g_ProtoQualifiers;
 extern char** g_ppSimpleTypes;
-extern struct ITEM_STRINT* g_ppKnownMacros;
-extern struct ITEM_STRSTR* g_ppTypeAttrConv;
-extern struct ITEM_STRSTR* g_ppConvertTokens;
-extern struct ITEM_STRSTR* g_ppConvertTypes1;
-extern struct ITEM_STRSTR* g_ppConvertTypes2;
-extern struct ITEM_STRSTR* g_ppConvertTypes3;
-extern struct ITEM_STRSTR* g_ppAlignments;
-extern struct ITEM_STRINT* g_ppTypeSize;
+extern struct ITEM_MACROINFO*   g_ppKnownMacros;
+extern struct ITEM_STRSTR*      g_ppTypeAttrConv;
+extern struct ITEM_STRSTR*      g_ppConvertTokens;
+extern struct ITEM_STRSTR*      g_ppConvertTypes1;
+extern struct ITEM_STRSTR*      g_ppConvertTypes2;
+extern struct ITEM_STRSTR*      g_ppConvertTypes3;
+extern struct ITEM_STRSTR*      g_ppAlignments;
+extern struct ITEM_STRINT*      g_ppTypeSize;
 
 extern uint8_t g_bTerminate;
 

@@ -76,7 +76,7 @@ char* GetNextToken(struct INCFILE* pIncFile);
 char *GetNextTokenPP(struct INCFILE* pIncFile);
 
 int getblock(struct INCFILE* pIncFile, char* pszStructName, uint32_t dwMode, char* pszParent);
-int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct LISTITEM* pNameItem, int bWriteLF);
+int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROINFO* pMacroInfo, int bWriteLF);
 void ProcessFile(char*, struct INCFILE* pIncFile);
 int ParseTypedefFunction(struct INCFILE* pIncFile, char* pszName, int bAcceptBody, char* pszParent);
 int ParseTypedefFunctionPtr(struct INCFILE* pIncFile, char* pszParent, char**outPszName);
@@ -661,10 +661,10 @@ int IsReservedWord(char* pszName) {
 // if macro is found, return address of NAMEITEM
 // or macro flags (then bit 0 of eax is set)
 
-struct LISTITEM* IsMacro(struct INCFILE* pIncFile, char* pszName) {
+struct ITEM_MACROINFO* IsMacro(struct INCFILE* pIncFile, char* pszName) {
      for (int i = 0; g_ppKnownMacros[i].key != NULL; i++) {
          if (strcmp(g_ppKnownMacros[i].key, pszName) == 0) {
-             return (struct LISTITEM*)&g_ppKnownMacros[i];
+             return &g_ppKnownMacros[i];
          }
      }
      return FindItemList(g_pMacros, pszName);
@@ -1620,7 +1620,7 @@ char* GetStructName(struct INCFILE* pIncFile, char* pszStructName, uint32_t* dwF
                 goto exit;
             }
 
-            struct LISTITEM* macroLI = IsMacro(pIncFile, pszName);
+            struct ITEM_MACROINFO* macroLI = IsMacro(pIncFile, pszName);
             if (dwFlags != 0) {
                 char* curPszOut = pIncFile->pszOut;
                 pIncFile->pszOut = pszStructName;
@@ -2094,14 +2094,14 @@ nextscan:
             goto nextitem;
         }
 
-        struct LISTITEM* isMacro = IsMacro(pIncFile, pszToken);
-        if (isMacro != NULL) {
+        struct ITEM_MACROINFO* macroInfo = IsMacro(pIncFile, pszToken);
+        if (macroInfo != NULL) {
             int res;
             if (bMode == DT_ENUM) {
-                res = MacroInvocation(pIncFile, pszToken, isMacro, 0);
+                res = MacroInvocation(pIncFile, pszToken, macroInfo, 0);
                 pszName = "";
             } else {
-                res = MacroInvocation(pIncFile, pszToken, isMacro, 1);
+                res = MacroInvocation(pIncFile, pszToken, macroInfo, 1);
             }
             if (res) {
                 goto nextitem;
@@ -3167,10 +3167,10 @@ nexttoken:
     }
 
     // syntax: "typedef <macro()> xxx"
-    struct LISTITEM* macroPtr = IsMacro(pIncFile, pszToken);
-    if (macroPtr != NULL) {
+    struct ITEM_MACROINFO* macroInfo = IsMacro(pIncFile, pszToken);
+    if (macroInfo != NULL) {
         debug_printf("%u: ParseTypedef, macro invocation %s\n", pIncFile->dwLine, pszToken);
-        if (MacroInvocation(pIncFile, pszToken, macroPtr, 1)) {
+        if (MacroInvocation(pIncFile, pszToken, macroInfo, 1)) {
             goto nexttoken;
         }
     }
@@ -3580,7 +3580,7 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
 // returns 1 if macro was invoked
 // else 0 (turned out to be NO macro invocation)
 
-int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct LISTITEM* pNameItem, int bWriteLF) {
+int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROINFO* pMacroInfo, int bWriteLF) {
     uint32_t dwCnt;
     uint32_t dwParms;   // parameters for macro
     uint32_t dwFlags;   // flags from h2incc.ini
@@ -3590,11 +3590,11 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct LISTITEM* p
     char* pszOutSave;
     int dwRC;
 
-    if (pNameItem->value.u32 & 1) {
+    if (pMacroInfo->flags & 1) {
         dwParms = 0;
-        dwFlags = (uintptr_t)pNameItem;
+        dwFlags = (uintptr_t)pMacroInfo;
     } else {
-        dwParms = pNameItem->value.u32; // number of parameters
+        dwParms = pMacroInfo->flags; // number of parameters
         dwFlags = 0;
     }
 
@@ -3833,7 +3833,7 @@ int ParseC(struct INCFILE* pIncFile) {
         goto exit;
     }
     if (pIncFile->dwQualifiers == 0) {
-        struct LISTITEM* macroInfo = IsMacro(pIncFile, pszToken);
+        struct ITEM_MACROINFO* macroInfo = IsMacro(pIncFile, pszToken);
         if (macroInfo != 0) {
             if (MacroInvocation(pIncFile, pszToken, macroInfo, 1)) {
                 goto exit;
@@ -3919,7 +3919,7 @@ void AnalyzerIncFile(struct INCFILE* pIncFile) {
         // AddItemArrayList(g_pStructures, (struct NAMEITEM*) g_KnownStructures.pItems, g_KnownStructures.numItems);
     }
     if (g_pMacros == NULL) {
-        g_pMacros = CreateList(MAXITEMS, sizeof(struct LISTITEM));
+        g_pMacros = CreateList(MAXITEMS, sizeof(struct ITEM_MACROINFO));
     }
 #if PROTOSUMMARY
     if (g_bProtoSummary && g_pPrototypes == NULL) {

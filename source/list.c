@@ -45,7 +45,7 @@ void* list_bsearch(void* key, void* base, uint32_t num, uint32_t width, int(*com
             hi = mid;
         }
         if (num_left == 0) {
-            if (lo > base && compare(&key, lo - width) == 0) {
+            if ((void*)lo > base && compare(&key, lo - width) == 0) {
                 if (res != NULL) {
                     *res = lo;
                 }

@@ -57,7 +57,7 @@ struct SORTARRAY g_ReservedWords;       // profile file strings [Reserved Words]
 struct SORTARRAY g_KnownStructures;     // profile file strings
 struct SORTARRAY g_ProtoQualifiers;     // profile file strings
 char** g_ppSimpleTypes;                 // profile file strings [Simple Types]
-struct ITEM_STRINT* g_ppKnownMacros;    // profile file strings [Macro Names]
+struct ITEM_MACROINFO* g_ppKnownMacros; // profile file strings [Macro Names]
 struct ITEM_STRSTR* g_ppTypeAttrConv;   // profile file strings
 struct ITEM_STRSTR* g_ppConvertTokens;  // profile file strings
 struct ITEM_STRSTR* g_ppConvertTypes1;  // profile file strings
@@ -125,6 +125,7 @@ struct CONVTABENTRY {
     char* pszSection;                   // section name
     void* pPtr;                         // pointer to table pointer or SORTARRAY
     void* pDefault;                     // pointer to default value table
+    size_t itemSize;                    // size of one item
     uint32_t dwFlags;                   //
     void* pStorage;
 };
@@ -158,9 +159,9 @@ struct ITEM_STRSTR g_TypeAttrConvDefault[] = {
 // known macro names
 // usually not used, since defined in h2incc.ini
 
-struct ITEM_STRINT g_KnownMacrosDefault[] = {
-    { "DECLARE_HANDLE", 0 },
-    { "DECLARE_GUID", 0 },
+struct ITEM_MACROINFO g_KnownMacrosDefault[] = {
+    { "DECLARE_HANDLE", 0, 0 },
+    { "DECLARE_GUID", 0, 0 },
     { 0 },
 };
 
@@ -315,18 +316,18 @@ struct SORTARRAY g_ReservedWordsDefault = {
 // default tables marked with CF_ATOL, CF_SORT or CF_CASE must be in .data
 
 struct CONVTABENTRY convtab[] = {
-    { "Simple Type Names",          &g_ppSimpleTypes,   &g_SimpleTypesDefault,      CF_KEYS ,                       NULL },
-    { "Macro Names",                &g_ppKnownMacros,   &g_KnownMacrosDefault,      CF_ATOL ,                       NULL },
-    { "Structure Names",            &g_KnownStructures, &g_KnownStructuresDefault,  CF_SORT | CF_KEYS,              NULL },
-    { "Reserved Words",             &g_ReservedWords,   &g_ReservedWordsDefault,    CF_CASE | CF_SORT | CF_KEYS,    NULL },
-    { "Type Qualifier Conversion",  &g_ppTypeAttrConv,  &g_TypeAttrConvDefault,     0,                              NULL },
-    { "Type Conversion 1",          &g_ppConvertTypes1, &g_ConvertTypes1Default,    0,                              NULL },
-    { "Type Conversion 2",          &g_ppConvertTypes2, &g_ConvertTypes2Default,    0,                              NULL },
-    { "Type Conversion 3",          &g_ppConvertTypes3, &g_ConvertTypes3Default,    0,                              NULL },
-    { "Token Conversion",           &g_ppConvertTokens, &g_ConvertTokensDefault,    0,                              NULL },
-    { "Prototype Qualifiers",       &g_ProtoQualifiers, &g_ProtoQualifiersDefault,  CF_ATOL | CF_SORT,              NULL },
-    { "Alignment",                  &g_ppAlignments,    &g_AlignmentsDefault,       0,                              NULL },
-    { "Type Size",                  &g_ppTypeSize,      &g_TypeSizeDefault,         CF_ATOL,                        NULL },
+    { "Simple Type Names",          &g_ppSimpleTypes,   &g_SimpleTypesDefault,      sizeof(struct NAMEITEM),        CF_KEYS ,                       NULL },
+    { "Macro Names",                &g_ppKnownMacros,   &g_KnownMacrosDefault,      sizeof(struct ITEM_MACROINFO),  CF_ATOL ,                       NULL },
+    { "Structure Names",            &g_KnownStructures, &g_KnownStructuresDefault,  sizeof(char *),                 CF_SORT | CF_KEYS,              NULL },
+    { "Reserved Words",             &g_ReservedWords,   &g_ReservedWordsDefault,    sizeof(char *),                 CF_CASE | CF_SORT | CF_KEYS,    NULL },
+    { "Type Qualifier Conversion",  &g_ppTypeAttrConv,  &g_TypeAttrConvDefault,     sizeof(struct ITEM_STRSTR),     0,                              NULL },
+    { "Type Conversion 1",          &g_ppConvertTypes1, &g_ConvertTypes1Default,    sizeof(struct ITEM_STRSTR),     0,                              NULL },
+    { "Type Conversion 2",          &g_ppConvertTypes2, &g_ConvertTypes2Default,    sizeof(struct ITEM_STRSTR),     0,                              NULL },
+    { "Type Conversion 3",          &g_ppConvertTypes3, &g_ConvertTypes3Default,    sizeof(struct ITEM_STRSTR),     0,                              NULL },
+    { "Token Conversion",           &g_ppConvertTokens, &g_ConvertTokensDefault,    sizeof(struct ITEM_STRSTR),     0,                              NULL },
+    { "Prototype Qualifiers",       &g_ProtoQualifiers, &g_ProtoQualifiersDefault,  sizeof(struct ITEM_STRINT),     CF_ATOL | CF_SORT,              NULL },
+    { "Alignment",                  &g_ppAlignments,    &g_AlignmentsDefault,       sizeof(struct ITEM_STRINT),     0,                        NULL },
+    { "Type Size",                  &g_ppTypeSize,      &g_TypeSizeDefault,         sizeof(struct ITEM_STRINT),     CF_ATOL,                        NULL },
     { 0 },
 };
 
@@ -586,10 +587,12 @@ char* xstrtok(char* str, char* delim, char* match) {
 
 // load all strings from a section
 
-size_t LoadStrings(char* pszTypes, char** pTable, char* stringTable, int bKeyOnly, size_t *pTextLength) {
+size_t LoadStrings(char* pszTypes, char** pTable, char* stringTable, int bKeyOnly, size_t *pTextLength, size_t itemSize) {
     size_t nbStrings = 0;
     size_t textLength = 0;
+    char **currentItem = pTable;
     while (1) {
+        pTable = currentItem;
         if (*pszTypes == '\0' || *pszTypes == '[') {
             break;
         }
@@ -605,6 +608,7 @@ size_t LoadStrings(char* pszTypes, char** pTable, char* stringTable, int bKeyOnl
         }
         char match;
         char* nextStr = xstrtok(pszTypes, bKeyOnly ? "\r\n" : "=\r\n", &match);
+        int remaining = (size_t)itemSize;
         size_t lenKey = nextStr - pszTypes;
         nbStrings++;
         textLength += lenKey + 1;
@@ -614,6 +618,7 @@ size_t LoadStrings(char* pszTypes, char** pTable, char* stringTable, int bKeyOnl
             *pTable = stringTable;
             stringTable += lenKey + 1;
             pTable++;
+            remaining -= sizeof(char*);
         }
         pszTypes = nextStr;
         while (*pszTypes != '\0' && (*pszTypes == '\n' || *pszTypes == '\r')) {
@@ -633,11 +638,16 @@ size_t LoadStrings(char* pszTypes, char** pTable, char* stringTable, int bKeyOnl
                 *pTable = stringTable;
                 stringTable += lenVal + 1;
                 pTable++;
+                remaining -= sizeof(char*);
             }
             pszTypes = nextStr;
             while (*pszTypes != '\0' && (*pszTypes == '\n' || *pszTypes == '\r')) {
                 pszTypes++;
             }
+        }
+        assert(remaining >= 0);
+        if (pTable) {
+            currentItem = (char**)((char*)currentItem + itemSize);
         }
     }
     debug_printf("LoadStrings()=%u stringsize=%u\n", (unsigned)nbStrings, (unsigned)textLength);
@@ -698,14 +708,14 @@ void LoadTablesFromProfile(char* pszInput, size_t dwSize) {
         }
         if (start != NULL) {
             size_t textLength;
-            size_t nb = LoadStrings(start, NULL, NULL, tabEntry->dwFlags & CF_KEYS, &textLength);
+            size_t nb = LoadStrings(start, NULL, NULL, tabEntry->dwFlags & CF_KEYS, &textLength, tabEntry->itemSize);
             if (nb != 0) {
                 char* textBuffer = malloc(textLength);
                 tabEntry->pStorage = textBuffer;
-                *(char***)tabEntry->pPtr = malloc((nb + 1) * sizeof(char*));
-                memset(*(char**)tabEntry->pPtr, 0, (nb + 1) * sizeof(char*));
+                *(char***)tabEntry->pPtr = malloc((nb + 1) * tabEntry->itemSize);
+                memset(*(char**)tabEntry->pPtr, 0, (nb + 1) * tabEntry->itemSize);
                 if (tabEntry->pPtr != NULL) {
-                    LoadStrings(start, *(char***)tabEntry->pPtr, textBuffer, tabEntry->dwFlags & CF_KEYS, &textLength);
+                    LoadStrings(start, *(char***)tabEntry->pPtr, textBuffer, tabEntry->dwFlags & CF_KEYS, &textLength, tabEntry->itemSize);
                 }
             }
         } else {
