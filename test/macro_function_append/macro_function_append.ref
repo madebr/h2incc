@@ -1,0 +1,5 @@
+MACRO_FUNC macro a,b,c,d
+exitm <( ARG_ ## a )  or  ( ARG_ ## b )  or  ( ARG_ ## c )  or  ( ARG_ ## d ) >
+	endm
+BR_EULER_XYZ_S = ARG_1 or ARG_2 or ARG_3 or ARG_4
+

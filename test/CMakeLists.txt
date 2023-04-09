@@ -53,6 +53,7 @@ set(REF_TEST_CASES
     macro_define_string_specchars
     macro_define_string_vtab
     macro_function
+    macro_function_append
     macro_function_enum
     macro_function_enum_multiline
     macro_ifdef
