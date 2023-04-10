@@ -160,8 +160,8 @@ struct ITEM_STRSTR g_TypeAttrConvDefault[] = {
 // usually not used, since defined in h2incc.ini
 
 struct ITEM_MACROINFO g_KnownMacrosDefault[] = {
-    { "DECLARE_HANDLE", 0, 0 },
-    { "DECLARE_GUID", 0, 0 },
+    { "DECLARE_HANDLE", 0, 0, NULL, NULL },
+    { "DECLARE_GUID", 0, 0, NULL, NULL },
     { 0 },
 };
 

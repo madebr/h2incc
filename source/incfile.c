@@ -1077,6 +1077,8 @@ void IsDefine(struct INCFILE* pIncFile) {
             SkipSimpleBraces(pIncFile);
 #endif
             dwParms = 0;
+            struct MACRO_TOKEN *params = NULL;
+            struct MACRO_TOKEN *last_parm = NULL;
             while (1) {
                 pszParm = GetNextTokenPP(pIncFile);
                 if (pszParm == NULL) {
@@ -1086,6 +1088,17 @@ void IsDefine(struct INCFILE* pIncFile) {
                     break;
                 }
                 if (*pszParm != ',') {
+                    // Store name of parameter
+                    struct MACRO_TOKEN *parm = malloc(sizeof(struct MACRO_TOKEN*));
+                    parm->next = NULL;
+                    parm->name = strdup(pszParm);
+                    if (last_parm == NULL) {
+                        params = parm;
+                    } else {
+                        last_parm->next = parm;
+                    }
+                    last_parm = parm;
+
                     dwParms++;
                     if (IsReservedWord(pszParm) && g_bWarningLevel > 1) {
                         fprintf(stderr, "%s, %u: reserved word '%s' used as macro parameter\n", pIncFile->pszFileName, pIncFile->dwLine, pszParm);
@@ -1096,13 +1109,32 @@ void IsDefine(struct INCFILE* pIncFile) {
             }
             write(pIncFile, "\r\n");
             write(pIncFile, szComment);
+            struct ITEM_MACROINFO *macroInfo = NULL;
+
 
             // save macro name in symbol table
-
             if (IsMacro(pIncFile, pszName) == NULL) {
-                InsertStrIntItem(pIncFile, g_pMacros, pszName, dwParms);
+                macroInfo = InsertStrIntItem(pIncFile, g_pMacros, pszName, dwParms);
+            }
+            if (macroInfo) {
+                macroInfo->params = malloc(dwParms * (sizeof(char*))+1);
+                macroInfo->params[dwParms] = NULL;
+                int i = 0;
+                struct MACRO_TOKEN *p = params;
+                for (; p != NULL; p = p->next, i++) {
+                    macroInfo->params[i] = p->name;
+                }
+            }
+            while (params != NULL) {
+                struct MACRO_TOKEN *p = params->next;
+                free(params);
+                params = p;
             }
             write(pIncFile, "exitm <");
+
+            int nbContents = 0;
+            struct MACRO_TOKEN *contents = NULL;
+            struct MACRO_TOKEN *last_contents = NULL;
 
             // test if it is a "COBJMACRO"
 
@@ -1119,12 +1151,42 @@ void IsDefine(struct INCFILE* pIncFile) {
                 if (token == NULL) {
                     break;
                 }
+                struct MACRO_TOKEN *content = malloc(sizeof(struct MACRO_TOKEN));
+                content->name = strdup(token);
+                content->next = NULL;
+                if (last_contents == NULL) {
+                    contents = content;
+                } else {
+                    last_contents->next = content;
+                }
+                nbContents++;
+                last_contents = content;
+
+                if (macroInfo != NULL && strcmp(token, "##") == 0) {
+                    macroInfo->containsAppend = 1;
+                }
                 if (bIsCObj && strcmp(token, ")") == 0) {
                     continue;
                 }
                 write(pIncFile, TranslateOperator(token));
                 write(pIncFile, " ");
             }
+
+            if (macroInfo) {
+                macroInfo->contents = malloc(nbContents * (sizeof(char*))+1);
+                macroInfo->contents[nbContents] = NULL;
+                int i = 0;
+                struct MACRO_TOKEN *p = contents;
+                for (; p != NULL; p = p->next, i++) {
+                    macroInfo->contents[i] = p->name;
+                }
+            }
+            while (contents != NULL) {
+                struct MACRO_TOKEN *p = contents->next;
+                free(contents);
+                contents = p;
+            }
+
             write(pIncFile, ">\r\n");
             write(pIncFile, szComment);
             write(pIncFile, "\tendm\r\n");
@@ -3575,6 +3637,15 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
     }
 }
 
+static int FindInArray(const char *needle, const char **array) {
+    for (int i = 0; array[i] != NULL; i++) {
+        if (strcmp(needle, array[i]) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // a known macro has been found
 // if bit 0 of pNameItem is set then it is a macro from h2incc.ini
 // returns 1 if macro was invoked
@@ -3597,124 +3668,209 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
         dwParms = pMacroInfo->flags; // number of parameters
         dwFlags = 0;
     }
-
     pszOutSave = pIncFile->pszOut;
 
-    debug_printf("%u: macro invocation found: %s\n", pIncFile->dwLine, pszToken);
-    if (dwFlags & MF_INTERFACEEND) {
-        xprintf(pIncFile, "??Interface equ <>\r\n");
-        pIncFile->bIsInterface = 0;
-    }
-    char* token = PeekNextToken(pIncFile);
-    if (token != NULL && *token == '(') {
-        write(pIncFile, pszToken);
-        token = GetNextToken(pIncFile);
-        if (dwFlags & MF_SKIPBRACES) {
-            write(pIncFile, " ");
-        } else {
-            write(pIncFile, token);
-        }
-        dwCnt = 1;
-        while (1) {
+    if (pMacroInfo->containsAppend) {
+        int nbParams = 0;
+        struct MACRO_TOKEN *param_tokens = NULL;
+        struct MACRO_TOKEN *last_param_token = NULL;
+        char *token = PeekNextToken(pIncFile);
+        if (token != NULL && *token == '(') {
             token = GetNextToken(pIncFile);
-            if (token == NULL) {
-                break;
-            }
-            if (*token == ')') {
-                dwCnt--;
-            } else if (*token == '(') {
-                dwCnt++;
-            }
-            if (dwCnt == 0) {
-                break;
-            }
-            if (dwFlags & MF_PARAMS) {
-                token = TranslateName(token, NULL, NULL);
-            }
-            debug_printf("%u: macro parameter: %s\n", pIncFile->dwLine, token);
-            if (IsAlpha(*token)) {
-                write(pIncFile, " ");
-            }
-            write(pIncFile, TranslateOperator(token));
-        }
-        if (dwFlags & MF_SKIPBRACES) {
-            write(pIncFile, " ");
-        } else {
-            write(pIncFile, ")");
-        }
-        if (dwFlags & MF_COPYLINE) {
-            bPtr = 0;
-            pszName = NULL;
-            pszType = NULL;
+            dwCnt = 1;
             while (1) {
-                if (dwFlags & MF_PARAMS) {
-                    token = GetNextToken(pIncFile);
-                    if (token == NULL || strcmp(token, ";") == 0) {
-                        break;
-                    }
-                } else {
-                    token = GetNextTokenPP(pIncFile);
-                    if (token == NULL) {
-                        break;
-                    }
+                token = GetNextToken(pIncFile);
+                if (token == NULL) {
+                    break;
                 }
-                if (dwFlags & MF_PARAMS) {
-                    if (strcmp(token, "_") == 0 || strcmp(token, ",") == 0) {
-                        char* param = pszType;
-                        if (param == NULL) {
-                            param = pszName;
-                        }
-                        if (param != NULL) {
-                            debug_printf("%u: MacroInvocation, param=%s\n", pIncFile->dwLine, param);
-                            write(pIncFile, ", :");
-                            while (bPtr != 0) {
-                                write(pIncFile, "ptr ");
-                                bPtr--;
-                            }
-                            write(pIncFile, TranslateType(param, g_bUntypedParams));
-                        }
-                        pszType = NULL;
-                        pszName = NULL;
-                        bPtr = 0;
-                        if (strcmp(token, ",") == 0) {
-                            continue;
-                        }
-                    }
-                    if (strcmp(token, "(") == 0) {
-                        dwCnt++;
-                    } else if (strcmp(token, ")") == 0) {
-                        dwCnt--;
-                    } else if (strcmp(token, "*") == 0) {
-                        bPtr++;
-                    } else if (strcmp(token, "[") == 0) {
-                        bPtr++;
-                        while (1) {
-                            token = GetNextTokenPP(pIncFile);
-                            if (token == NULL || strcmp(token, "]") == 0) {
-                                break;
-                            }
-                        }
+                if (*token == ')') {
+                    dwCnt--;
+                } else if (*token == '(') {
+                    dwCnt++;
+                }
+                if (dwCnt == 0) {
+                    break;
+                }
+//                if (dwFlags & MF_PARAMS) {
+//                    token = TranslateName(token, NULL, NULL);
+//                }
+                debug_printf("%u: macro parameter: %s\n", pIncFile->dwLine, token);
+//                if (IsAlpha(*token)) {
+//                    write(pIncFile, " ");
+//                }
+                if (*token != ',') {
+                    nbParams++;
+                    struct MACRO_TOKEN *param_token = malloc(sizeof(struct MACRO_TOKEN));
+                    param_token->name = strdup(token);
+                    param_token->next = NULL;
+                    if (last_param_token != NULL) {
+                        last_param_token->next = param_token;
                     } else {
-                        if (stricmp(token, "this") == 0 || stricmp(token, "this_")) {
-                            continue;
-                        }
-                        token = ConvertTypeQualifier(token);
-                        if (*token != '\0') {
-                            pszType = pszName;
-                            pszName = token;
-                        }
+                        param_tokens = param_token;
                     }
-                    continue;
+                    last_param_token = param_token;
                 }
+            }
+        }
+
+        char **params = malloc(sizeof(char*) * (nbParams + 1));
+        params[nbParams] = NULL;
+        for (int i = 0; param_tokens != NULL; i++) {
+            params[i] = param_tokens->name;
+            struct MACRO_TOKEN *p = param_tokens->next;
+            free(param_tokens);
+            param_tokens = p;
+        }
+
+        char buffer[256];
+        buffer[0] = '\0';
+        int nextAppend = 0;
+        for (size_t content_i = 0; pMacroInfo->contents[content_i] != NULL; content_i++) {
+            const char *currentContentToken = pMacroInfo->contents[content_i];
+            if (strcmp(currentContentToken, "##") == 0) {
+                nextAppend = 1;
+                continue;
+            }
+            int param_i = FindInArray(currentContentToken, pMacroInfo->params);
+            if (!nextAppend) {
+                write(pIncFile, TranslateOperator(buffer));
+                if (buffer[0] != '\0') {
+                    write(pIncFile, " ");
+                    buffer[0] = '\0';
+                }
+            }
+            if (param_i < 0) {
+                strcat(buffer, currentContentToken);
+            } else {
+                strcat(buffer, params[param_i]);
+            }
+            nextAppend = 0;
+        }
+        if (buffer[0]) {
+            write(pIncFile, TranslateOperator(buffer));
+        }
+        for (int i = 0; params[i]; i++) {
+            free(params[i]);
+        }
+        free(params);
+    } else {
+        debug_printf("%u: macro invocation found: %s\n", pIncFile->dwLine, pszToken);
+        if (dwFlags & MF_INTERFACEEND) {
+            xprintf(pIncFile, "??Interface equ <>\r\n");
+            pIncFile->bIsInterface = 0;
+        }
+
+        char *token = PeekNextToken(pIncFile);
+        if (token != NULL && *token == '(') {
+            write(pIncFile, pszToken);
+            token = GetNextToken(pIncFile);
+            if (dwFlags & MF_SKIPBRACES) {
+                write(pIncFile, " ");
+            } else {
                 write(pIncFile, token);
             }
-        }
-    } else {
-        if (dwParms == 0) {
-            write(pIncFile, pszToken);
+            dwCnt = 1;
+            while (1) {
+                token = GetNextToken(pIncFile);
+                if (token == NULL) {
+                    break;
+                }
+                if (*token == ')') {
+                    dwCnt--;
+                } else if (*token == '(') {
+                    dwCnt++;
+                }
+                if (dwCnt == 0) {
+                    break;
+                }
+                if (dwFlags & MF_PARAMS) {
+                    token = TranslateName(token, NULL, NULL);
+                }
+                debug_printf("%u: macro parameter: %s\n", pIncFile->dwLine, token);
+                if (IsAlpha(*token)) {
+                    write(pIncFile, " ");
+                }
+                write(pIncFile, TranslateOperator(token));
+            }
+            if (dwFlags & MF_SKIPBRACES) {
+                write(pIncFile, " ");
+            } else {
+                write(pIncFile, ")");
+            }
+            if (dwFlags & MF_COPYLINE) {
+                bPtr = 0;
+                pszName = NULL;
+                pszType = NULL;
+                while (1) {
+                    if (dwFlags & MF_PARAMS) {
+                        token = GetNextToken(pIncFile);
+                        if (token == NULL || strcmp(token, ";") == 0) {
+                            break;
+                        }
+                    } else {
+                        token = GetNextTokenPP(pIncFile);
+                        if (token == NULL) {
+                            break;
+                        }
+                    }
+                    if (dwFlags & MF_PARAMS) {
+                        if (strcmp(token, "_") == 0 || strcmp(token, ",") == 0) {
+                            char *param = pszType;
+                            if (param == NULL) {
+                                param = pszName;
+                            }
+                            if (param != NULL) {
+                                debug_printf("%u: MacroInvocation, param=%s\n", pIncFile->dwLine, param);
+                                write(pIncFile, ", :");
+                                while (bPtr != 0) {
+                                    write(pIncFile, "ptr ");
+                                    bPtr--;
+                                }
+                                write(pIncFile, TranslateType(param, g_bUntypedParams));
+                            }
+                            pszType = NULL;
+                            pszName = NULL;
+                            bPtr = 0;
+                            if (strcmp(token, ",") == 0) {
+                                continue;
+                            }
+                        }
+                        if (strcmp(token, "(") == 0) {
+                            dwCnt++;
+                        } else if (strcmp(token, ")") == 0) {
+                            dwCnt--;
+                        } else if (strcmp(token, "*") == 0) {
+                            bPtr++;
+                        } else if (strcmp(token, "[") == 0) {
+                            bPtr++;
+                            while (1) {
+                                token = GetNextTokenPP(pIncFile);
+                                if (token == NULL || strcmp(token, "]") == 0) {
+                                    break;
+                                }
+                            }
+                        } else {
+                            if (stricmp(token, "this") == 0 || stricmp(token, "this_")) {
+                                continue;
+                            }
+                            token = ConvertTypeQualifier(token);
+                            if (*token != '\0') {
+                                pszType = pszName;
+                                pszName = token;
+                            }
+                        }
+                        continue;
+                    }
+                    write(pIncFile, token);
+                }
+            }
         } else {
-            dwRC = 1;
-            goto exit;
+            if (dwParms == 0) {
+                write(pIncFile, pszToken);
+            } else {
+                dwRC = 1;
+                goto exit;
+            }
         }
     }
     if (dwFlags & MF_ENDMACRO) {

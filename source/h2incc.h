@@ -47,10 +47,17 @@ struct ITEM_STRINT {
     intptr_t value;
 };
 
+struct MACRO_TOKEN {
+    char *name;
+    struct MACRO_TOKEN *next;
+};
+
 struct ITEM_MACROINFO {
     char *key;
     intptr_t flags;
-    intptr_t value2;
+    intptr_t containsAppend;
+    const char **params;
+    const char **contents;
 };
 
 int cmpproc(const void*, const void*);
