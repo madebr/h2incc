@@ -75,6 +75,7 @@ set(REF_TEST_CASES
     typedef_enum_char_rbracket
     typedef_enum_int
     typedef_function
+    typedef_function_pointer
     struct_member_protected_word
     union_simple
 )

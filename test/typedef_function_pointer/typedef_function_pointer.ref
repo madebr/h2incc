@@ -1,0 +1,2 @@
+proto_callback_fn typedef proto  :ptr SBYTE
+callback_fn typedef ptr proto_callback_fn
