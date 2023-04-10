@@ -1,0 +1,2 @@
+	include stdarg.inc
+fatal proto :ptr SBYTE, :SDWORD, :ptr SBYTE

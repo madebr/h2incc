@@ -38,6 +38,7 @@ set(REF_TEST_CASES
     extern_intptr
     extern_unsigned
     function_int
+    function_variadic
     function_void
     include_local
     macro_define_char_rbracket
