@@ -2997,7 +2997,7 @@ int ParseTypedefFunctionPtr(struct INCFILE* pIncFile, char* pszParent, char** ou
                 if (*typeQual == '\0') {
                     continue;
                 }
-                if (pszType == NULL) {
+                if (pszType == NULL || strcmp(pszType, "const") == 0) {
                     pszType = pszToken;
                 }
             }
