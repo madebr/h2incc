@@ -1,4 +1,4 @@
 // driver: args=
 // driver: expected=success
-// driver: reference=voidfunction.ref
+// driver: reference=function_void.ref
 void myfunction(void);

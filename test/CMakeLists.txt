@@ -38,6 +38,7 @@ set(REF_TEST_CASES
     extern_intptr
     extern_unsigned
     function_int
+    function_void
     include_local
     macro_define_char_rbracket
     macro_define_int_decimal
@@ -75,7 +76,6 @@ set(REF_TEST_CASES
     typedef_function
     struct_member_protected_word
     union_simple
-    voidfunction
 )
 
 foreach(ref_case ${REF_TEST_CASES})
