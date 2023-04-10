@@ -70,6 +70,14 @@ struct INCFILE {
     uint8_t         bIsInterface;           // inside an interface definition
 };
 
+int contains(char *needle, char **array, int count) {
+    for (int i = 0; i < count; i++) {
+        if (strcmp(needle, array[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 
 char* GetNextToken(struct INCFILE* pIncFile);
@@ -1544,6 +1552,25 @@ char* GetNextToken(struct INCFILE* pIncFile) {
         pIncFile->bNewLine = 0;
         return currentIn;
     } while (1);
+}
+
+size_t PeekNextTokens(struct INCFILE* pIncFile, char** tokens, size_t count) {
+    struct INPSTAT sis;
+    char* pszToken;
+    size_t res = 0;
+
+    SaveInputStatus(pIncFile, &sis);
+    pIncFile->bSkipPP++;
+    for (size_t i = 0; i < count; i++) {
+        tokens[i] = GetNextToken(pIncFile);
+        if (!tokens[i]) {
+            break;
+        }
+        res++;
+    }
+    pIncFile->bSkipPP--;
+    RestoreInputStatus(pIncFile, &sis);
+    return res;
 }
 
 char* PeekNextToken(struct INCFILE* pIncFile) {
@@ -3201,6 +3228,8 @@ int ParseTypedef(struct INCFILE* pIncFile) {
     bUnsigned = 0;
 nexttoken:
     pszToken = GetNextToken(pIncFile);
+    char *nextTokens[3];
+    int countNextTokens = PeekNextTokens(pIncFile, nextTokens, sizeof(nextTokens) / sizeof(*nextTokens));
     if (pszToken != NULL) {
         pszToken = TranslateToken(pszToken);
     }
@@ -3239,7 +3268,7 @@ nexttoken:
 
     // syntax: "typedef union|struct"?
     int isClass;
-    if (IsUnionStructClass(pszToken, &isClass)) {
+    if (IsUnionStructClass(pszToken, &isClass) && contains("{", nextTokens, countNextTokens)) {
         debug_printf("%u: ParseTypedef, '%s' found\n", pIncFile->dwLine, pszToken);
         dwRC = ParseTypedefUnionStruct(pIncFile, pszToken, isClass);
         goto exit;
