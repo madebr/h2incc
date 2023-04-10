@@ -3539,7 +3539,10 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
             if (*token == ')') {
                 dwCnt--;
             } else {
-                write(pIncFile, token);
+                char *nextToken = PeekNextToken(pIncFile);
+                if (strcmp(nextToken, "...") != 0) {
+                    write(pIncFile, token);
+                }
             }
         } else if (*token == '*' || *token == '&') {
             dwPtr++;
