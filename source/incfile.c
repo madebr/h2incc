@@ -4880,16 +4880,15 @@ file_exists:
     stat(pszFileName, &fileStat);
     gmtime_r(&fileStat.st_mtime, &pIncFile->filetime);
 
-    fseek(file, 0, SEEK_END);
-    dwFileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    dwFileSize = fileStat.st_size;
 
-    uint32_t extraBuffer = dwFileSize;
+    uint32_t extraBuffer;
 #if ADD50PERCENT
-    extraBuffer >> 1;    // add 50% to file size for buffer size
+    extraBuffer = extraBuffer >> 1;    // add 50% to file size for buffer size
+#else
+    extraBuffer = dwFileSize;
 #endif
-    dwFileSize += extraBuffer;
-    pIncFile->dwBufSize = dwFileSize + 2048;
+    pIncFile->dwBufSize = dwFileSize + extraBuffer;
 
     pIncFile->pBuffer1 = malloc(pIncFile->dwBufSize);
     debug_printf("alloc buffer 1 for %s returned %p\n", pIncFile->pszFileName, pIncFile->pBuffer1);
