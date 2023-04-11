@@ -71,6 +71,7 @@ set(REF_TEST_CASES
     macro_ifdef
     struct_char
     struct_charp
+    struct_conditional_member
     struct_embedded
     struct_funcptr
     struct

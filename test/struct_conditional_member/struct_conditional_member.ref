@@ -1,0 +1,11 @@
+ifndef GUARD_H
+GUARD_H	EQU	<>
+CONDITIONAL	EQU	0
+my_struct	struct 
+member1	SDWORD	?
+if CONDITIONAL
+conditional_member1	SDWORD	?
+conditional_member2	SDWORD	?
+endif 
+my_struct	ends
+endif 
