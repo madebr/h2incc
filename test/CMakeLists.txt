@@ -87,6 +87,7 @@ set(REF_TEST_CASES
     typedef_enum_int
     typedef_function
     typedef_function_pointer
+    typedef_struct
     struct_member_protected_word
     union_simple
 )
