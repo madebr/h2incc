@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--h2incc", type=pathlib.Path, required=True, help="path of h2incc")
     parser.add_argument("--iniconfig", type=pathlib.Path, required=True, help="path to ini config")
+    parser.add_argument("--desc", type=pathlib.Path, required=False, help="description of test")
     parser.add_argument("--case", type=pathlib.Path, required=True, help="path of test case")
     parser.add_argument("--loglevel", type=int, default=logging.WARNING, help="logging level")
     parser.add_argument("--update", action="store_true", help="update reference file (if applicable)")
@@ -33,7 +34,7 @@ def main():
 
     found_driver_spec = False
 
-    with args.case.open() as f:
+    with (args.desc or args.case).open() as f:
         while line := f.readline():
             m = re.match(r"^//\W+driver:\W*(.*)\n", line)
             if not m:

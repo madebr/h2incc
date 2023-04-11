@@ -2,26 +2,34 @@ find_package(PythonInterp REQUIRED)
 
 add_custom_target(update-references)
 
-function(add_h2incc_test INPUT)
+function(add_h2incc_test FOLDER)
     cmake_parse_arguments(AHT "" "LOGLEVEL" "" ${ARGN})
     set(loglevel 10)
     if(AHT_LOGLEVEL)
         set(loglevel ${AHT_LOGLEVEL})
     endif()
+    set(TESTCASE "${FOLDER}/${FOLDER}.h")
     set(cmd ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/driver.py"
         --h2incc "$<TARGET_FILE:h2incc>"
         --iniconfig "$<TARGET_FILE_DIR:h2incc>/h2incc.ini"
-        --case "${CMAKE_CURRENT_SOURCE_DIR}/${INPUT}"
-        --loglevel ${loglevel})
-    string(MAKE_C_IDENTIFIER "update-reference-${INPUT}" tgt_name)
+        --case "${CMAKE_CURRENT_SOURCE_DIR}/${TESTCASE}"
+        --loglevel ${loglevel}
+    )
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER}/${FOLDER}.desc")
+        list(APPEND cmd
+            --desc "${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER}/${FOLDER}.desc"
+        )
+    endif()
+    string(MAKE_C_IDENTIFIER "update-reference-${TESTCASE}" tgt_name)
     add_custom_target(${tgt_name}
         COMMAND ${cmd} --update
     )
     add_dependencies(update-references ${tgt_name})
 
-    add_test(NAME test_${INPUT}
-        COMMAND ${cmd})
-    set_property(TEST test_${INPUT}
+    add_test(NAME test_${TESTCASE}
+        COMMAND ${cmd}
+    )
+    set_property(TEST test_${TESTCASE}
         PROPERTY
             TIMEOUT 1
     )
@@ -29,6 +37,8 @@ endfunction()
 
 set(REF_TEST_CASES
     comments
+    empty
+    empty_block_comment_only
     enum_anon_noval
     extern_float
     extern_funcptr
@@ -81,5 +91,5 @@ set(REF_TEST_CASES
 )
 
 foreach(ref_case ${REF_TEST_CASES})
-    add_h2incc_test(${ref_case}/${ref_case}.h)
+    add_h2incc_test(${ref_case})
 endforeach()

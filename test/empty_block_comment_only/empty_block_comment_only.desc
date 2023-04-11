@@ -1,0 +1,4 @@
+// driver: args=-c
+// driver: expected=success
+// driver: reference=empty_block_comment.ref
+
