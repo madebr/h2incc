@@ -121,6 +121,7 @@ extern uint8_t g_b64bit;
 extern uint8_t g_bWarningLevel;
 extern uint8_t g_bOverwrite;
 extern uint8_t g_bCreateDefs;
+extern uint8_t g_bPrefixReserved;
 
 extern uint8_t g_bPrototypes;
 extern uint8_t g_bTypedefs;

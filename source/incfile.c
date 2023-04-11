@@ -1609,8 +1609,13 @@ char* TranslateName(char* pszName, char* pszOut, int *bTranslateHappened) {
         if (pszOut == NULL) {
             pszOut = g_szTemp;
         }
+        if (g_bPrefixReserved) {
+            strcat(pszOut, "_");
+        }
         strcpy(pszOut, pszName);
-        strcat(pszOut, "_");
+        if (!g_bPrefixReserved) {
+            strcat(pszOut, "_");
+        }
         if (bTranslateHappened != NULL) {
             *bTranslateHappened = 1;
         }

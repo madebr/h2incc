@@ -74,6 +74,7 @@ uint8_t g_bIncludeComments;             // -c cmdline switch
 uint8_t g_bAssumeDllImport;             // -d cmdline switch
 uint8_t g_bUseDefProto;                 // -D cmdline switch
 uint8_t g_bCreateDefs;                  // -e cmdline switch
+uint8_t g_bPrefixReserved;              // -f cmdline switch
 uint8_t g_bIgnoreDllImport;             // -g cmdline switch
 uint8_t g_bProcessInclude;              // -i cmdline switch
 uint8_t g_bUntypedMembers;              // -m cmdline switch
@@ -351,6 +352,7 @@ struct CLSWITCH clswitchtab[] = {
 //  { 'D',  CLS_ISBOOL, &g_bUseDefProto },
 //  { 'g',  CLS_ISBOOL, &g_bIgnoreDllImport },
     { 'e',  CLS_ISBOOL, &g_bCreateDefs },
+    { 'f',  CLS_ISBOOL, &g_bPrefixReserved },
     { 'i',  CLS_ISBOOL, &g_bProcessInclude },
     { 'I',  CLS_ISBOOL, &g_bIncDirExpected },
     { 'k',  CLS_ISBOOL, &g_bCallConvExpected },
@@ -407,6 +409,7 @@ char* szUsage =
     "     2: always assume __declspec(dllimport) is not set\n"
     "     3: if possible use @DefProto macro to define prototypes\n"
     "  -e: write full decorated names of function prototypes to a .DEF file\n"
+    "  -f: prefix reserved words instead of postfix\n"
     "  -i: process #include lines\n"
     "  -I directory: specify an additionally directory to search for header files\n"
     "  -k c|s|p|y: set default calling convention for prototypes\n"
