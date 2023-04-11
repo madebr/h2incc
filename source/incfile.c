@@ -3398,6 +3398,10 @@ nexttoken:
                 debug_printf("%u: ParseTypedef, array size '%s' found\n", pIncFile->dwLine, token);
                 continue;
             }
+            if (strcmp(pszType, "struct") == 0) {
+                pszType = TranslateType(token, 0);
+                continue;
+            }
             token = ConvertTypeQualifier(token);
             if (*token == '\0') {
                 continue;
