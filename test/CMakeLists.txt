@@ -71,6 +71,7 @@ set(REF_TEST_CASES
     macro_function_enum
     macro_function_enum_multiline
     macro_ifdef
+    macro_ifnot
     struct_char
     struct_charp
     struct_conditional_member

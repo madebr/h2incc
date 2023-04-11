@@ -1,0 +1,3 @@
+if  0 eq OPTION_A AND  0 eq OPTION_B
+.err <"Must define OPTION_A or OPTION_B" >
+endif 
