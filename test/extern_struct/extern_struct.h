@@ -1,6 +1,4 @@
 // driver: args=
 // driver: expected=success
-// driver: reference=include_local.ref
-#include "struct_char.h"
-
+// driver: reference=extern_struct.ref
 extern struct name;

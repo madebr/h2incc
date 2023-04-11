@@ -51,7 +51,7 @@ set(REF_TEST_CASES
     function_int
     function_variadic
     function_void
-    include_local
+    extern_struct
     macro_define_c_commands
     macro_define_char_rbracket
     macro_define_int_decimal
