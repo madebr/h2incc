@@ -1380,9 +1380,12 @@ void IfElseIf(struct INCFILE* pIncFile, int bMode) {
     SkipCasts(pIncFile);
     pszToken = GetNextTokenPP(pIncFile);
     if (pszToken != NULL) {
+        struct INPSTAT state;
+        SaveInputStatus(pIncFile, &state);
+        char *nextToken = pszToken;
         if (strcmp(pszToken, "!") == 0) {
             pszNot = "0 eq ";
-            pszToken = GetNextToken(pIncFile);
+            nextToken = GetNextTokenPP(pIncFile);
         } else {
             pszNot = "";
         }
@@ -1391,6 +1394,7 @@ void IfElseIf(struct INCFILE* pIncFile, int bMode) {
             pszToken = GetNextTokenPP(pIncFile);
             goto exit;
         }
+        RestoreInputStatus(pIncFile, &state);
     }
     if (!bMode) {
         write(pIncFile, "if ");
