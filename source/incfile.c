@@ -927,7 +927,7 @@ exit:
 void SkipPPLine(struct INCFILE* pIncFile) {
     while (1) {
         char* token = GetNextTokenPP(pIncFile);
-        if (token != NULL) {
+        if (token == NULL) {
             break;
         }
     }
