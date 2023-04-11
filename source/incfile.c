@@ -1071,6 +1071,10 @@ void IsDefine(struct INCFILE* pIncFile) {
             }
         }
         SkipCasts(pIncFile);
+
+        int validMacro = 1;
+        char *savePos = pIncFile->pszOut;
+
         write(pIncFile, szComment);
         write(pIncFile, pszName);
         bMacro = pIncFile->pszIn[0] == (char)PP_MACRO && pIncFile->pszIn[1] == '\0';
@@ -1119,7 +1123,6 @@ void IsDefine(struct INCFILE* pIncFile) {
             write(pIncFile, szComment);
             struct ITEM_MACROINFO *macroInfo = NULL;
 
-
             // save macro name in symbol table
             if (IsMacro(pIncFile, pszName) == NULL) {
                 macroInfo = InsertStrIntItem(pIncFile, g_pMacros, pszName, dwParms);
@@ -1159,6 +1162,9 @@ void IsDefine(struct INCFILE* pIncFile) {
                 if (token == NULL) {
                     break;
                 }
+                if (strcmp(token, "->") == 0 || strcmp(token, ">") == 0) {
+                    validMacro = 0;
+                }
                 struct MACRO_TOKEN *content = malloc(sizeof(struct MACRO_TOKEN));
                 content->name = strdup(token);
                 content->next = NULL;
@@ -1195,9 +1201,15 @@ void IsDefine(struct INCFILE* pIncFile) {
                 contents = p;
             }
 
-            write(pIncFile, ">\r\n");
+            write(pIncFile, ">");
+            write(pIncFile, "\r\n");
             write(pIncFile, szComment);
             write(pIncFile, "\tendm\r\n");
+
+            if (!validMacro) {
+                pIncFile->pszOut = savePos;
+                xprintf(pIncFile, "; macro %s contains unsupported operator\r\n", pszName);
+            }
         } else {
             write(pIncFile, "\tEQU\t");
             SkipSimpleBraces(pIncFile);
