@@ -48,10 +48,11 @@ set(REF_TEST_CASES
     extern_int
     extern_intptr
     extern_unsigned
+    extern_struct
     function_int
     function_variadic
     function_void
-    extern_struct
+    include_struct
     macro_define_c_commands
     macro_define_char_rbracket
     macro_define_int_decimal

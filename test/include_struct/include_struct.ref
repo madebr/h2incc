@@ -1,0 +1,9 @@
+	include local.inc
+user	struct 
+e1	SDWORD	?
+e2	subtype1	<>
+e3	subtype2 3 dup (<>)
+e4	SWORD	?
+user	ends
+externdef s1: subtype1
+externdef s2: subtype2
