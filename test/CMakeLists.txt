@@ -40,6 +40,7 @@ set(REF_TEST_CASES
     empty
     empty_block_comment_only
     enum_anon_noval
+    enum_anon_val_hex
     extern_float
     extern_funcptr
     extern_double

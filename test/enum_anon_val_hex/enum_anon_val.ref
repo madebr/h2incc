@@ -1,0 +1,6 @@
+VALUE_A = 00004000h 
+if 0
+VALUE_B = 00008000h 
+endif 
+VALUE_C = 00010000h 
+
