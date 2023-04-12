@@ -3535,9 +3535,11 @@ void ParseExtern(struct INCFILE* pIncFile) {
             xwrite(pIncFile, ";extern \"C++\"\r\n");
             break;
         }
-        pIncFile->pszPrefix = "externdef ";
+        static char externPrefix[32];
+        strcpy(externPrefix, "externdef ");
+        pIncFile->pszPrefix = externPrefix;
         if (pIncFile->bC) {
-            xwrite(pIncFile, "c ");
+            strcat(externPrefix, "c ");
         }
         GetDeclaration(pIncFile, pszToken, NULL, DT_EXTERN);
         break;
