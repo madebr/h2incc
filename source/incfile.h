@@ -7,7 +7,7 @@
 
 struct INCFILE;
 
-struct INCFILE* CreateIncFile(char*, struct INCFILE*);
+struct INCFILE* CreateIncFile(const char*, struct INCFILE*);
 void DestroyIncFile(struct INCFILE*);
 int WriteIncFile(struct INCFILE*, char*);
 int WriteDefIncFile(struct INCFILE*, char*);

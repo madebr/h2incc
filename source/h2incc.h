@@ -63,7 +63,7 @@ struct ITEM_MACROINFO {
 };
 
 int cmpproc(const void*, const void*);
-char* AddString(char* pszString);
+char* AddString(const char* pszString);
 void DestroyString(char* pszString);
 
 extern int g_argc;

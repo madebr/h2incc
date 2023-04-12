@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_ANDMEAN
@@ -397,7 +398,7 @@ char* InsertDefItem(struct INCFILE* pIncFile, char* pszFuncName, uint32_t dwParm
 }
 
 // write a string to output stream
-void write(struct INCFILE* pIncFile, const char* pszText) {
+void xwrite(struct INCFILE* pIncFile, const char* pszText) {
     strcpy(pIncFile->pszOut, pszText);
     pIncFile->pszOut += strlen(pszText);
 }
@@ -526,7 +527,7 @@ int IsStructure(char* pszType) {
 
 int WriteComment(struct INCFILE* pIncFile) {
     if (g_bIncludeComments && g_szComment[1] != '\0') {
-        write(pIncFile, g_szComment);
+        xwrite(pIncFile, g_szComment);
         g_szComment[1] = '\0';
         return 1;
     } else {
@@ -576,11 +577,11 @@ void CopyLine(struct INCFILE* pIncFile) {
         if (next == NULL) {
             break;
         }
-        write(pIncFile, next);
-        write(pIncFile, " ");
+        xwrite(pIncFile, next);
+        xwrite(pIncFile, " ");
     }
     WriteComment(pIncFile);
-    write(pIncFile, "\r\n");
+    xwrite(pIncFile, "\r\n");
 }
 
 int IsName(struct INCFILE* pIncFile, char* pszType) {
@@ -803,7 +804,7 @@ void convertline(struct INCFILE* pIncFile, char* pszName) {
         }
         RestoreInputStatus(pIncFile, &sis);
         if (!bExpression) {
-            write(pIncFile, "<");
+            xwrite(pIncFile, "<");
         }
         pszOut = pIncFile->pszOut;
         ppszItems = CreateLinkedList();
@@ -811,12 +812,12 @@ void convertline(struct INCFILE* pIncFile, char* pszName) {
         while (pszValue != NULL) {
             AddLinkedList(ppszItems, (uintptr_t)pszValue);
             if (dwCnt != 0) {
-                write(pIncFile, " ");
+                xwrite(pIncFile, " ");
             }
             debug_printf("%u: item %s found\n", pIncFile->dwLine, pszValue);
             dwCnt++;
             TranslateOperator(pszValue);
-            write(pIncFile, pszValue);
+            xwrite(pIncFile, pszValue);
             pszValue = GetNextTokenPP(pIncFile);
         }
 #if DYNPROTOQUALS
@@ -839,13 +840,13 @@ void convertline(struct INCFILE* pIncFile, char* pszName) {
         }
 #endif
         if (!bExpression) {
-            write(pIncFile, ">");
+            xwrite(pIncFile, ">");
         }
     } else {
-        write(pIncFile, "<>");
+        xwrite(pIncFile, "<>");
     }
     WriteComment(pIncFile);
-    write(pIncFile, "\r\n");
+    xwrite(pIncFile, "\r\n");
     DestroyLinkedList(ppszItems);
 }
 
@@ -1077,15 +1078,15 @@ void IsDefine(struct INCFILE* pIncFile) {
         int validMacro = 1;
         char *savePos = pIncFile->pszOut;
 
-        write(pIncFile, szComment);
-        write(pIncFile, pszName);
+        xwrite(pIncFile, szComment);
+        xwrite(pIncFile, pszName);
         bMacro = pIncFile->pszIn[0] == (char)PP_MACRO && pIncFile->pszIn[1] == '\0';
         if (bMacro) {
             GetNextTokenPP(pIncFile);   // skip PP_MACRO
             GetNextTokenPP(pIncFile);   // skip "("
-            write(pIncFile, " macro ");
+            xwrite(pIncFile, " macro ");
 
-            // write the macro params
+            // xwrite the macro params
 
 #if 1
             SkipSimpleBraces(pIncFile);
@@ -1119,10 +1120,10 @@ void IsDefine(struct INCFILE* pIncFile) {
                         pIncFile->dwWarnings++;
                     }
                 }
-                write(pIncFile, pszParm);
+                xwrite(pIncFile, pszParm);
             }
-            write(pIncFile, "\r\n");
-            write(pIncFile, szComment);
+            xwrite(pIncFile, "\r\n");
+            xwrite(pIncFile, szComment);
             struct ITEM_MACROINFO *macroInfo = NULL;
 
             // save macro name in symbol table
@@ -1143,7 +1144,7 @@ void IsDefine(struct INCFILE* pIncFile) {
                 free(params);
                 params = p;
             }
-            write(pIncFile, "exitm <");
+            xwrite(pIncFile, "exitm <");
 
             int nbContents = 0;
             struct MACRO_TOKEN *contents = NULL;
@@ -1184,8 +1185,8 @@ void IsDefine(struct INCFILE* pIncFile) {
                 if (bIsCObj && strcmp(token, ")") == 0) {
                     continue;
                 }
-                write(pIncFile, TranslateOperator(token));
-                write(pIncFile, " ");
+                xwrite(pIncFile, TranslateOperator(token));
+                xwrite(pIncFile, " ");
             }
 
             if (macroInfo) {
@@ -1203,17 +1204,17 @@ void IsDefine(struct INCFILE* pIncFile) {
                 contents = p;
             }
 
-            write(pIncFile, ">");
-            write(pIncFile, "\r\n");
-            write(pIncFile, szComment);
-            write(pIncFile, "\tendm\r\n");
+            xwrite(pIncFile, ">");
+            xwrite(pIncFile, "\r\n");
+            xwrite(pIncFile, szComment);
+            xwrite(pIncFile, "\tendm\r\n");
 
             if (!validMacro) {
                 pIncFile->pszOut = savePos;
                 xprintf(pIncFile, "; macro %s contains unsupported operator\r\n", pszName);
             }
         } else {
-            write(pIncFile, "\tEQU\t");
+            xwrite(pIncFile, "\tEQU\t");
             SkipSimpleBraces(pIncFile);
             convertline(pIncFile, pszName);
         }
@@ -1224,10 +1225,33 @@ void IsDefine(struct INCFILE* pIncFile) {
     }
 }
 
+char *strings_join(const char *s, ...) {
+    va_list va;
+    size_t len = strlen(s);
+    va_start(va, s);
+    for (const char *next = va_arg(va, char*); next != NULL; next = va_arg(va, char*)) {
+        len += strlen(next);
+    }
+    va_end(va);
+    char *result = malloc(len + 1);
+    strcpy(result, s);
+    va_start(va, s);
+    for (const char *next = va_arg(va, char*); next != NULL; next = va_arg(va, char*)) {
+        strcat(result, next);
+    }
+    va_end(va);
+    result[len] = '\0';
+    return result;
+}
+
+int file_exists(const char *path) {
+    return access(path, R_OK) == 0;
+}
+
 void IsInclude(struct INCFILE* pIncFile) {
     char* pszPath;
 
-    write(pIncFile, "\tinclude ");
+    xwrite(pIncFile, "\tinclude ");
     pszPath = GetNextTokenPP(pIncFile);
     if (pszPath != NULL && *pszPath == '<') {
         pszPath = GetNextTokenPP(pIncFile);
@@ -1235,13 +1259,14 @@ void IsInclude(struct INCFILE* pIncFile) {
     char *pszOut = pIncFile->pszOut;
     if (pszPath != NULL) {
         char sep = '\0';
+        char *startIncPath = pszPath;
         if (pszPath[0] == '"') {
             pszPath++;
             sep = '"';
+            startIncPath = pszPath;
         }
         while (*pszPath != '\0') {
             char c = *pszPath;
-            pszPath++;
             if (c == sep) {
                 break;
             }
@@ -1250,7 +1275,35 @@ void IsInclude(struct INCFILE* pIncFile) {
             }
             *pszOut = c;
             pszOut++;
+            pszPath++;
         }
+        char *incPathArg = strdup(startIncPath);
+        incPathArg[pszPath - startIncPath] = '\0';
+
+        char *newFullIncPath = NULL;
+        newFullIncPath = strings_join(pIncFile->pszDirPath, incPathArg, NULL);
+        if (!file_exists(newFullIncPath)) {
+            free(newFullIncPath);
+            newFullIncPath = NULL;
+            for (size_t i = 0; i < g_pszIncDirs->size; i++) {
+                newFullIncPath = strings_join(((const char**)g_pszIncDirs->data)[i], incPathArg, NULL);
+                if (file_exists(newFullIncPath)) {
+                    break;
+                }
+                free(newFullIncPath);
+                newFullIncPath = NULL;
+            }
+        }
+        if (newFullIncPath) {
+            struct INCFILE *subIncFile = CreateIncFile(newFullIncPath, pIncFile);
+            free((char *) newFullIncPath);
+            if (subIncFile != NULL) {
+                ParserIncFile(subIncFile);
+                AnalyzerIncFile(subIncFile);
+                DestroyIncFile(subIncFile);
+            }
+        }
+
         char ext[2];
         memcpy(ext, &pszOut[-2], 2);
         if (strnicmp(ext, ".h", 2) == 0) {
@@ -1268,18 +1321,18 @@ void IsInclude(struct INCFILE* pIncFile) {
 }
 
 void IsError(struct INCFILE* pIncFile) {
-    write(pIncFile, ".err <");
+    xwrite(pIncFile, ".err <");
     for (int i = 0; 1; i++) {
         char* token = GetNextTokenPP(pIncFile);
         if (token == NULL) {
             break;
         }
         if (i > 0) {
-            write(pIncFile, " ");
+            xwrite(pIncFile, " ");
         }
-        write(pIncFile, token);
+        xwrite(pIncFile, token);
     }
-    write(pIncFile, " >\r\n");
+    xwrite(pIncFile, " >\r\n");
 }
 
 void IsPragma(struct INCFILE* pIncFile) {
@@ -1289,35 +1342,35 @@ void IsPragma(struct INCFILE* pIncFile) {
     char* token = GetNextTokenPP(pIncFile);
     if (strcmp(token, "message") != 0) {
         RestoreInputStatus(pIncFile, &sis);
-        write(pIncFile, ";#pragma ");
+        xwrite(pIncFile, ";#pragma ");
         CopyLine(pIncFile);
         return;
     }
     token = GetNextTokenPP(pIncFile);  // skip '('
     if (token != NULL) {
-        write(pIncFile, "%echo ");
+        xwrite(pIncFile, "%echo ");
         for (int i = 0; 1; i++) {
             token = GetNextTokenPP(pIncFile);
             if (token == NULL || *token == ')') {
                 break;
             }
             if (i > 0) {
-                write(pIncFile, " ");
+                xwrite(pIncFile, " ");
             }
             if (*token == '*') {
                 token++;
                 token[strlen(token)-1] = '\0';
             }
-            write(pIncFile, token);
+            xwrite(pIncFile, token);
             if (token != NULL) {
                 SkipPPLine(pIncFile);
             }
             // check if last character is a ','
             // this causes %echo to continue with next line!
             if (pIncFile->pszOut[-1] == ',') {
-                write(pIncFile, "'");
+                xwrite(pIncFile, "'");
             }
-            write(pIncFile, "\r\n");
+            xwrite(pIncFile, "\r\n");
         }
     }
 }
@@ -1364,15 +1417,15 @@ void DecIfLevel(struct INCFILE* pIncFile) {
 static void IfElseIf_getifexpr(struct INCFILE* pIncFile, char* pszNot, int bMode) {
     if (!pIncFile->bDefinedMac) {
         pIncFile->bDefinedMac = 1;
-        write(pIncFile, szMac_defined);
+        xwrite(pIncFile, szMac_defined);
     }
     if (!bMode) {
-        write(pIncFile, "if ");
+        xwrite(pIncFile, "if ");
     } else {
-        write(pIncFile, "elseif ");
+        xwrite(pIncFile, "elseif ");
     }
-    write(pIncFile, pszNot);
-    write(pIncFile, "defined");
+    xwrite(pIncFile, pszNot);
+    xwrite(pIncFile, "defined");
 }
 
 void IfElseIf(struct INCFILE* pIncFile, int bMode) {
@@ -1399,20 +1452,20 @@ void IfElseIf(struct INCFILE* pIncFile, int bMode) {
         RestoreInputStatus(pIncFile, &state);
     }
     if (!bMode) {
-        write(pIncFile, "if ");
+        xwrite(pIncFile, "if ");
     } else {
-        write(pIncFile, "elseif ");
+        xwrite(pIncFile, "elseif ");
     }
 exit:
     while (pszToken != NULL) {
         if (IsNumber(pszToken)) {
-            write(pIncFile, pszToken);
+            xwrite(pIncFile, pszToken);
         } else {
-            write(pIncFile, TranslateIfExpression(pszToken));
+            xwrite(pIncFile, TranslateIfExpression(pszToken));
         }
         pszToken = GetNextTokenPP(pIncFile);
     }
-    write(pIncFile, "\r\n");
+    xwrite(pIncFile, "\r\n");
 }
 
 // #ifdef/#ifndef
@@ -1423,14 +1476,14 @@ void IfdefIfndef(struct INCFILE* pIncFile, char* pszCmd) {
     if (pszToken == NULL) {
         fprintf(stderr, "%s, %u: unexpected end of line\n", pIncFile->pszFileName, pIncFile->dwLine);
         pIncFile->dwErrors++;
-        write(pIncFile, "if 0;");
+        xwrite(pIncFile, "if 0;");
     } else {
         if (IsReservedWord(pszToken)) {
-            write(pIncFile, "if 0;");
+            xwrite(pIncFile, "if 0;");
         }
-        write(pIncFile, pszCmd);
-        write(pIncFile, " ");
-        write(pIncFile, pszToken);
+        xwrite(pIncFile, pszCmd);
+        xwrite(pIncFile, " ");
+        xwrite(pIncFile, pszToken);
     }
     CopyLine(pIncFile);
 }
@@ -1438,8 +1491,8 @@ void IfdefIfndef(struct INCFILE* pIncFile, char* pszCmd) {
 // #else/#endif
 
 void ElseEndif(struct INCFILE* pIncFile, char* pszCmd) {
-    write(pIncFile, pszCmd);
-    write(pIncFile, " ");
+    xwrite(pIncFile, pszCmd);
+    xwrite(pIncFile, " ");
     CopyLine(pIncFile);
 }
 
@@ -1511,7 +1564,7 @@ void ParsePreProcs(struct INCFILE* pIncFile) {
     if (!pIncFile->bSkipPP) {
         local_ppCmds = ppcmds;
         if (!IsNewLine(pIncFile)) {
-            write(pIncFile, "\r\n");
+            xwrite(pIncFile, "\r\n");
         }
     } else {
         local_ppCmds = ppcmdsnp;
@@ -1550,7 +1603,7 @@ char* GetNextToken(struct INCFILE* pIncFile) {
             pIncFile->bNewLine = 1;
             if (pIncFile->pszOut == pIncFile->pszOutStart || pIncFile->pszOut[-1] == '\n') {
                 if (WriteComment(pIncFile)) {
-                    write(pIncFile, "\r\n");
+                    xwrite(pIncFile, "\r\n");
                 }
             }
             continue;
@@ -1562,7 +1615,7 @@ char* GetNextToken(struct INCFILE* pIncFile) {
         }
         if (pIncFile->bNewLine && strcmp(currentIn, "#") == 0) {
             if (WriteComment(pIncFile)) {
-                write(pIncFile, "\r\n");
+                xwrite(pIncFile, "\r\n");
             }
             ParsePreProcs(pIncFile);
             continue;
@@ -1633,10 +1686,10 @@ void WriteExpression(struct INCFILE* pIncFile, struct LinkedList* pExpression) {
     uint32_t count = GetNumItemsLinkedList(pExpression);
     if (count > 0) {
         for (uint32_t i = 0; i < count; i++) {
-            write(pIncFile, (char*)GetItemLinkedList(pExpression, i));
+            xwrite(pIncFile, (char*)GetItemLinkedList(pExpression, i));
         }
     } else {
-        write(pIncFile, "0");
+        xwrite(pIncFile, "0");
     }
 }
 
@@ -1651,29 +1704,29 @@ void AddMember(struct INCFILE* pIncFile, char* pszType, char* pszName, struct Li
             fprintf(stderr, "%s, %u: reserved word '%s' used as struct/union member\n", pIncFile->pszFileName, pIncFile->dwLine, pszName);
             pIncFile->dwWarnings++;
         }
-        write(pIncFile, pszName);
+        xwrite(pIncFile, pszName);
     }
-    write(pIncFile, "\t");
+    xwrite(pIncFile, "\t");
     pszType = TranslateType(pszType, g_bUntypedMembers);
-    write(pIncFile, pszType);
+    xwrite(pIncFile, pszType);
     if (pszDup != NULL) {
-        write(pIncFile, " ");
+        xwrite(pIncFile, " ");
         WriteExpression(pIncFile, pszDup);
         DestroyLinkedList(pszDup);
-        write(pIncFile, " dup (");
+        xwrite(pIncFile, " dup (");
     } else {
-        write(pIncFile, "\t");
+        xwrite(pIncFile, "\t");
     }
     if (bIsStruct || IsStructure(pszType)) {
-        write(pIncFile, "<>");
+        xwrite(pIncFile, "<>");
     } else {
-        write(pIncFile, "?");
+        xwrite(pIncFile, "?");
     }
     if (pszDup != NULL) {
-        write(pIncFile, ")");
+        xwrite(pIncFile, ")");
     }
     WriteComment(pIncFile);
-    write(pIncFile, "\r\n");
+    xwrite(pIncFile, "\r\n");
 }
 
 // preserve all registers
@@ -2017,7 +2070,7 @@ nextscan:
             }
             // union
             debug_printf("%u, GetDeclaration: %s.union found\n", pIncFile->dwLine, pszParent);
-            write(pIncFile, "union");
+            xwrite(pIncFile, "union");
             pszToken = GetNextToken(pIncFile);
             if (pszToken == NULL) {
                 goto error;
@@ -2034,10 +2087,10 @@ nextscan:
             if (strcmp(nextToken, "{") == 0) {
                 pszName = GetStructName(pIncFile, szStructName, &dwNameFlags);
                 if (pszName != NULL) {
-                    write(pIncFile, " ");
-                    write(pIncFile, TranslateName(pszName, NULL, NULL));
+                    xwrite(pIncFile, " ");
+                    xwrite(pIncFile, TranslateName(pszName, NULL, NULL));
                 }
-                write(pIncFile, "\r\n");
+                xwrite(pIncFile, "\r\n");
                 if (!getblock(pIncFile, pszName, DT_STANDARD, pszParent)) {
                     goto done;
                 }
@@ -2045,11 +2098,11 @@ nextscan:
             } else {
                 fprintf(stderr, "%s, %u: union without block\n", pIncFile->pszFileName, pIncFile->dwLine);
                 pIncFile->dwErrors++;
-                write(pIncFile, "\r\n");
+                xwrite(pIncFile, "\r\n");
             }
             pszType = NULL;
             pszName = NULL;
-            write(pIncFile, "ends\r\n");
+            xwrite(pIncFile, "ends\r\n");
             debug_printf("%u: end of union\n", pIncFile->dwLine);
             goto nextitem;
         }
@@ -2077,21 +2130,21 @@ nextscan:
                 }
             }
             if (strcmp(nextToken, "{") == 0) {
-                write(pIncFile, "struct");
+                xwrite(pIncFile, "struct");
                 char* structName = GetStructName(pIncFile, szStructName, &dwNameFlags);
                 if (structName != NULL) {
                     pszName = structName;
                 }
                 if (structName != NULL) {
-                    write(pIncFile, " ");
-                    write(pIncFile, TranslateName(pszName, NULL, NULL));
+                    xwrite(pIncFile, " ");
+                    xwrite(pIncFile, TranslateName(pszName, NULL, NULL));
                 }
-                write(pIncFile, "\r\n");
+                xwrite(pIncFile, "\r\n");
                 if (!getblock(pIncFile, pszName, DT_STANDARD, pszParent)) {
                     goto done;
                 }
                 SkipName(pIncFile, pszName, dwNameFlags);
-                write(pIncFile, "ends\r\n");
+                xwrite(pIncFile, "ends\r\n");
                 debug_printf("%u: end of struct\n", pIncFile->dwLine);
             } else if (strcmp(nextToken, "*") == 0) {
                 dwPtr++;
@@ -2328,15 +2381,15 @@ nextscan:
         } else {
             if (pszType == NULL) {
                 pszType = TranslateName(pszToken, NULL, NULL);
-                write(pIncFile, pszType);
-                write(pIncFile, " = ");
+                xwrite(pIncFile, pszType);
+                xwrite(pIncFile, " = ");
             } else {
                 pszName = pszToken;
-                write(pIncFile, TranslateOperator(pszName));
+                xwrite(pIncFile, TranslateOperator(pszName));
                 if (*pszToken >= '0') {
                     pIncFile->dwEnumValue = atol(pszToken) + 1;
                 }
-                write(pIncFile, " ");
+                xwrite(pIncFile, " ");
             }
             goto nextitem;
         }
@@ -2358,35 +2411,35 @@ nextitem:
         if (pszName != NULL) {
             char* transName = TranslateName(pszName, NULL, NULL);
             if (pIncFile->pszPrefix != NULL) {
-                write(pIncFile, pIncFile->pszPrefix);
+                xwrite(pIncFile, pIncFile->pszPrefix);
                 pIncFile->pszPrefix = NULL;
             }
             if (bStatic) {
                 xprintf(pIncFile, ";externdef syscall ?%s@%s@@___", transName, pszParent);
             } else {
-                write(pIncFile, transName);
+                xwrite(pIncFile, transName);
             }
-            write(pIncFile, ": ");
+            xwrite(pIncFile, ": ");
             while (dwPtr > 0) {
-                write(pIncFile, "ptr ");
+                xwrite(pIncFile, "ptr ");
                 dwPtr--;
             }
             if (bFunction) {
-                write(pIncFile, "near");
+                xwrite(pIncFile, "near");
             } else {
                 pszType = MakeType(pszType, bUnsigned, bLong, szType);
                 // fprintf(stderr, "GetDeclaration extern: type = %s\r\n", pszType);
-                write(pIncFile, TranslateType(pszType, g_bUntypedMembers));
+                xwrite(pIncFile, TranslateType(pszType, g_bUntypedMembers));
             }
         }
-        write(pIncFile, "\r\n");
+        xwrite(pIncFile, "\r\n");
     } else if (bMode == DT_ENUM) {
         if (pszType != NULL && pszName == NULL) {
             sprintf(szTmp, "%u", pIncFile->dwEnumValue);
-            write(pIncFile, szTmp);
+            xwrite(pIncFile, szTmp);
             pIncFile->dwEnumValue++;
         }
-        write(pIncFile,"\r\n");
+        xwrite(pIncFile,"\r\n");
     } else {
         // bitfield start
         if (pszBits != 0) {
@@ -2400,8 +2453,8 @@ nextitem:
                 sprintf(szRecord, "%s_R%u", pszParent, pIncFile->dwRecordNum);
                 pIncFile->dwRecordNum++;
                 if (g_bNoRecords) {
-                    write(pIncFile, "szRecord");
-                    write(pIncFile, "\tRECORD\t");
+                    xwrite(pIncFile, "szRecord");
+                    xwrite(pIncFile, "\tRECORD\t");
                 }
                 bBits = 1;
                 pszType = MakeType(pszType, bUnsigned, bLong, szType);
@@ -2410,9 +2463,9 @@ nextitem:
             }
             char* transName = TranslateName(pszName, NULL, NULL);
             if (!g_bNoRecords) {
-                write(pIncFile, transName);
-                write(pIncFile, ": ");
-                write(pIncFile, pszBits);
+                xwrite(pIncFile, transName);
+                xwrite(pIncFile, ": ");
+                xwrite(pIncFile, pszBits);
                 debug_printf("%u: new Bits: %s\n", pIncFile->dwLine, pszName);
             } else {
                 int nbBits = atol(pszBits);
@@ -2422,26 +2475,26 @@ nextitem:
             }
             if (IsRecordEnd(pIncFile)) {
                 if (!g_bNoRecords) {
-                    write(pIncFile, "\r\n");
+                    xwrite(pIncFile, "\r\n");
                 }
                 if (g_bRecordsInUnions) {
-                    write(pIncFile, "union\r\n\t");
-                    write(pIncFile, pszRecordType);
-                    write(pIncFile, "\t?\r\n");
+                    xwrite(pIncFile, "union\r\n\t");
+                    xwrite(pIncFile, pszRecordType);
+                    xwrite(pIncFile, "\t?\r\n");
                 } else if (g_bNoRecords) {
                     xprintf(pIncFile, "%s\t%s\t?\r\n", szRecord, pszRecordType);
                 }
                 if (!g_bNoRecords) {
-                    write(pIncFile, "\t");
-                    write(pIncFile, szRecord);
-                    write(pIncFile, " <>\r\n");
+                    xwrite(pIncFile, "\t");
+                    xwrite(pIncFile, szRecord);
+                    xwrite(pIncFile, " <>\r\n");
                 }
                 if (g_bRecordsInUnions) {
-                    write(pIncFile, "ends\r\n");
+                    xwrite(pIncFile, "ends\r\n");
                 }
             } else {
                 if (!g_bNoRecords) {
-                    write(pIncFile, ",");
+                    xwrite(pIncFile, ",");
                 }
                 pszToken = GetNextToken(pIncFile);
                 if (pszEndToken != NULL && *pszEndToken == ';') {
@@ -2558,17 +2611,17 @@ int GetFurtherTypes(struct INCFILE* pIncFile, char* pszType, char* pszTag, char*
                 // Coment out forward declarations
                 if (!bPtr) {
                     if (strcmp(pszName, pTypeStr) == 0) {
-                        write(pIncFile, ";");
+                        xwrite(pIncFile, ";");
                     }
                 }
-                write(pIncFile, pszName);
-                write(pIncFile, " typedef ");
+                xwrite(pIncFile, pszName);
+                xwrite(pIncFile, " typedef ");
                 while (bPtr) {
-                    write(pIncFile, "ptr ");
+                    xwrite(pIncFile, "ptr ");
                     bPtr--;
                 }
-                write(pIncFile, pTypeStr);
-                write(pIncFile, "\r\n");
+                xwrite(pIncFile, pTypeStr);
+                xwrite(pIncFile, "\r\n");
                 pszToken = pTypeStr;
             }
             if (*pszToken == ';') {
@@ -2591,7 +2644,7 @@ nextitem:
         }
     }
     if (pszName != NULL) {
-        write(pIncFile, "\r\n");
+        xwrite(pIncFile, "\r\n");
     }
     return 0;
 }
@@ -2619,7 +2672,7 @@ void WriteInherit(struct INCFILE* pIncFile, struct LinkedList* pszInherit, int b
         pszToken = (char*)GetItemLinkedList(pszInherit, i);
         if (strcmp(pszToken, "virtual") == 0) {
             if (bPreClass && !bVbtable) {
-                write(pIncFile, "DWORD ?\t;vbtable\r\n");
+                xwrite(pIncFile, "DWORD ?\t;vbtable\r\n");
                 bVbtable = 1;
             }
             bVirtual = 1;
@@ -2711,7 +2764,7 @@ int ParseTypedefUnionStruct(struct INCFILE* pIncFile, char* pszToken, int bIsCla
     debug_printf("%u: ParseTypedefUnionStruct, token '%s' found\n", pIncFile->dwLine, token);
     if (strcmp(token, "{") == 0) {
         if (g_bAddAlign && !pIncFile->bAlignMac) {
-            write(pIncFile, szMac_align);
+            xwrite(pIncFile, szMac_align);
             pIncFile->bAlignMac = 1;
         }
         bHasVTable = 0;
@@ -2824,7 +2877,7 @@ int ParseTypedefEnum(struct INCFILE* pIncFile, int bIsTypedef) {
         }
         pIncFile->dwEnumValue = 0;
         getblock(pIncFile, pszName, DT_ENUM, NULL);
-        write(pIncFile, "\r\n");
+        xwrite(pIncFile, "\r\n");
         if (bIsTypedef) {
             GetNextToken(pIncFile); // skip enum name;
         }
@@ -2835,8 +2888,8 @@ int ParseTypedefEnum(struct INCFILE* pIncFile, int bIsTypedef) {
     } else {
         // just syntax "typedef enum oldtypename newtypename;"
         if (IsName(pIncFile, token)) {
-            write(pIncFile, token);
-            write(pIncFile, " typedef DWORD\r\n");
+            xwrite(pIncFile, token);
+            xwrite(pIncFile, " typedef DWORD\r\n");
             dwRes = 0;
         } else {
             dwRes = 2;
@@ -3052,8 +3105,8 @@ int ParseTypedefFunctionPtr(struct INCFILE* pIncFile, char* pszParent, char** ou
                 }
             }
             if (pszName != NULL) {
-                write(pIncFile, szPrototype);
-                write(pIncFile, "\r\n");
+                xwrite(pIncFile, szPrototype);
+                xwrite(pIncFile, "\r\n");
                 if (pIncFile->bIsInterface) {
                 } else {
                     if (pszParent != NULL) {
@@ -3061,7 +3114,7 @@ int ParseTypedefFunctionPtr(struct INCFILE* pIncFile, char* pszParent, char** ou
                     } else {
                         xprintf(pIncFile, "%s", TranslateName(pszName, NULL, NULL));
                     }
-                    write(pIncFile, " typedef ");
+                    xwrite(pIncFile, " typedef ");
                     if (pszParent != NULL) {
                         xprintf(pIncFile, "ptr proto%s_%s\r\n", pszParent, pszName);
                     } else {
@@ -3160,23 +3213,23 @@ int ParseTypedefFunction(struct INCFILE* pIncFile, char* pszName, int bAcceptBod
                 }
                 if (bPtr || *pszType != '\0') {
                     if (bFirstParam) {
-                        write(pIncFile, ",");
+                        xwrite(pIncFile, ",");
                         bFirstParam = 0;
                     }
-                    write(pIncFile, ":");
+                    xwrite(pIncFile, ":");
                 }
                 while (bPtr > 0) {
-                    write(pIncFile, "ptr ");
+                    xwrite(pIncFile, "ptr ");
                     bPtr--;
                 }
                 if (pszType != NULL) {
-                    write(pIncFile, pszType);
+                    xwrite(pIncFile, pszType);
                 }
             }
             if (*token == ')') {
                 break;
             }
-            write(pIncFile, ",");
+            xwrite(pIncFile, ",");
             pszType = NULL;
             bPtr = 0;
             continue;
@@ -3197,7 +3250,7 @@ int ParseTypedefFunction(struct INCFILE* pIncFile, char* pszName, int bAcceptBod
             pszType = pszToken;
         }
     }
-    write(pIncFile, "\r\n");
+    xwrite(pIncFile, "\r\n");
     if (bAcceptBody) {
         char* tok = PeekNextToken(pIncFile);
         if (tok != NULL && strcmp(tok, "{") == 0) {
@@ -3335,7 +3388,7 @@ nexttoken:
                 // don't add "<newname> typedef <oldname>" entrief if <newname> == <oldname>
                 if (!bPtr) {
                     if (strcmp(pszName, pszType) == 0) {
-                        write(pIncFile, ";");
+                        xwrite(pIncFile, ";");
                         bValid = 0;
                     }
                 }
@@ -3351,23 +3404,23 @@ nexttoken:
                 debug_printf("%u: new typedef %s =%s\n", pIncFile->dwLine, pszName, pszType);
                 // if there is an array index, create a struct instead of a typedef!
                 if (pszDup && bPtr == 0) {
-                    write(pIncFile, pszName);
-                    write(pIncFile, " struct\r\n");
-                    write(pIncFile, "\t");
-                    write(pIncFile, pszType);
-                    write(pIncFile, " ");
-                    write(pIncFile, pszDup);
-                    write(pIncFile, " dup (?)\r\n");
-                    write(pIncFile, pszName);
-                    write(pIncFile, " ends\r\n");
+                    xwrite(pIncFile, pszName);
+                    xwrite(pIncFile, " struct\r\n");
+                    xwrite(pIncFile, "\t");
+                    xwrite(pIncFile, pszType);
+                    xwrite(pIncFile, " ");
+                    xwrite(pIncFile, pszDup);
+                    xwrite(pIncFile, " dup (?)\r\n");
+                    xwrite(pIncFile, pszName);
+                    xwrite(pIncFile, " ends\r\n");
                 } else {
-                    write(pIncFile, pszName);
-                    write(pIncFile, " typedef ");
+                    xwrite(pIncFile, pszName);
+                    xwrite(pIncFile, " typedef ");
                     for (uint32_t i = 0; i < bPtr; i++) {
-                        write(pIncFile, "ptr ");
+                        xwrite(pIncFile, "ptr ");
                     }
-                    write(pIncFile, pszType);
-                    write(pIncFile, "\r\n");
+                    xwrite(pIncFile, pszType);
+                    xwrite(pIncFile, "\r\n");
                 }
                 // add type to structure table if necessary
                 if (bValid && !bPtr) {
@@ -3470,16 +3523,16 @@ void ParseExtern(struct INCFILE* pIncFile) {
             break;
         }
         if (strcmp(pszToken, "\"C\"") == 0) {
-            write(pIncFile, ";extern \"C\"\r\n");
+            xwrite(pIncFile, ";extern \"C\"\r\n");
             pIncFile->bC = 1;
             break;
         } else if (strcmp(pszToken, "\"C++\"") == 0) {
-            write(pIncFile, ";extern \"C++\"\r\n");
+            xwrite(pIncFile, ";extern \"C++\"\r\n");
             break;
         }
         pIncFile->pszPrefix = "externdef ";
         if (pIncFile->bC) {
-            write(pIncFile, "c ");
+            xwrite(pIncFile, "c ");
         }
         GetDeclaration(pIncFile, pszToken, NULL, DT_EXTERN);
         break;
@@ -3570,9 +3623,9 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
                 if (dwPtr == 0 && *typeStr == '\0') {
                 } else {
                     if (dwParmBytes) {
-                        write(pIncFile, " :");
+                        xwrite(pIncFile, " :");
                     } else {
-                        write(pIncFile, ":");
+                        xwrite(pIncFile, ":");
                     }
                     if (dwPtr != 0) {
                         dwParmBytes = 4;
@@ -3581,11 +3634,11 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
                     }
                 }
                 while (dwPtr != 0) {
-                    write(pIncFile, "ptr ");
+                    xwrite(pIncFile, "ptr ");
                     dwPtr--;
                 }
                 if (pszType != NULL) {
-                    write(pIncFile, pszType);
+                    xwrite(pIncFile, pszType);
                 }
                 pszType = NULL;
                 pszName = NULL;
@@ -3597,7 +3650,7 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
             } else {
                 char *nextToken = PeekNextToken(pIncFile);
                 if (strcmp(nextToken, "...") != 0) {
-                    write(pIncFile, token);
+                    xwrite(pIncFile, token);
                 }
             }
         } else if (*token == '*' || *token == '&') {
@@ -3643,13 +3696,13 @@ void ParsePrototype(struct INCFILE* pIncFile, char* pszFuncName, char* pszImpSpe
         }
     }
     if (g_bUseDefProto && pszImpSpec) {
-        write(pIncFile, ">");
+        xwrite(pIncFile, ">");
         pIncFile->dwQualifiers &= ~FQ_IMPORT;
         if (pIncFile->dwQualifiers & FQ_STDCALL) {
             xprintf(pIncFile, ", %u", dwParmBytes);
         }
     }
-    write(pIncFile, "\r\n");
+    xwrite(pIncFile, "\r\n");
     if (pIncFile->dwQualifiers & FQ_IMPORT) {
 #if 1
         if (pIncFile->dwQualifiers & FQ_STDCALL) {
@@ -3755,7 +3808,7 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
 //                }
                 debug_printf("%u: macro parameter: %s\n", pIncFile->dwLine, token);
 //                if (IsAlpha(*token)) {
-//                    write(pIncFile, " ");
+//                    xwrite(pIncFile, " ");
 //                }
                 if (*token != ',') {
                     nbParams++;
@@ -3792,9 +3845,9 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
             }
             int param_i = FindInArray(currentContentToken, pMacroInfo->params);
             if (!nextAppend) {
-                write(pIncFile, TranslateOperator(buffer));
+                xwrite(pIncFile, TranslateOperator(buffer));
                 if (buffer[0] != '\0') {
-                    write(pIncFile, " ");
+                    xwrite(pIncFile, " ");
                     buffer[0] = '\0';
                 }
             }
@@ -3806,7 +3859,7 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
             nextAppend = 0;
         }
         if (buffer[0]) {
-            write(pIncFile, TranslateOperator(buffer));
+            xwrite(pIncFile, TranslateOperator(buffer));
         }
         for (int i = 0; params[i]; i++) {
             free(params[i]);
@@ -3821,12 +3874,12 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
 
         char *token = PeekNextToken(pIncFile);
         if (token != NULL && *token == '(') {
-            write(pIncFile, pszToken);
+            xwrite(pIncFile, pszToken);
             token = GetNextToken(pIncFile);
             if (dwFlags & MF_SKIPBRACES) {
-                write(pIncFile, " ");
+                xwrite(pIncFile, " ");
             } else {
-                write(pIncFile, token);
+                xwrite(pIncFile, token);
             }
             dwCnt = 1;
             while (1) {
@@ -3847,14 +3900,14 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
                 }
                 debug_printf("%u: macro parameter: %s\n", pIncFile->dwLine, token);
                 if (IsAlpha(*token)) {
-                    write(pIncFile, " ");
+                    xwrite(pIncFile, " ");
                 }
-                write(pIncFile, TranslateOperator(token));
+                xwrite(pIncFile, TranslateOperator(token));
             }
             if (dwFlags & MF_SKIPBRACES) {
-                write(pIncFile, " ");
+                xwrite(pIncFile, " ");
             } else {
-                write(pIncFile, ")");
+                xwrite(pIncFile, ")");
             }
             if (dwFlags & MF_COPYLINE) {
                 bPtr = 0;
@@ -3880,12 +3933,12 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
                             }
                             if (param != NULL) {
                                 debug_printf("%u: MacroInvocation, param=%s\n", pIncFile->dwLine, param);
-                                write(pIncFile, ", :");
+                                xwrite(pIncFile, ", :");
                                 while (bPtr != 0) {
-                                    write(pIncFile, "ptr ");
+                                    xwrite(pIncFile, "ptr ");
                                     bPtr--;
                                 }
-                                write(pIncFile, TranslateType(param, g_bUntypedParams));
+                                xwrite(pIncFile, TranslateType(param, g_bUntypedParams));
                             }
                             pszType = NULL;
                             pszName = NULL;
@@ -3920,12 +3973,12 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
                         }
                         continue;
                     }
-                    write(pIncFile, token);
+                    xwrite(pIncFile, token);
                 }
             }
         } else {
             if (dwParms == 0) {
-                write(pIncFile, pszToken);
+                xwrite(pIncFile, pszToken);
             } else {
                 dwRC = 1;
                 goto exit;
@@ -3938,7 +3991,7 @@ int MacroInvocation(struct INCFILE* pIncFile, char* pszToken, struct ITEM_MACROI
     }
 done:
     if (bWriteLF) {
-        write(pIncFile, "\r\n");
+        xwrite(pIncFile, "\r\n");
     }
     if ((dwFlags & MF_INTERFACEBEG) && pIncFile->pszStructName != NULL) {
         xprintf(pIncFile, "??Interface equ <%s>\r\n", pIncFile->pszStructName);
@@ -3974,7 +4027,7 @@ int ParseC(struct INCFILE* pIncFile) {
         return 0;
     }
     if (WriteComment(pIncFile)) {
-        write(pIncFile, "\r\n");
+        xwrite(pIncFile, "\r\n");
     }
     if (*pszToken == ';') {
         pIncFile->pszLastToken = NULL;
@@ -4076,13 +4129,13 @@ int ParseC(struct INCFILE* pIncFile) {
         if (strcmp(pszToken, "{") == 0) {
             pIncFile->dwBraces++;
             if (pIncFile->pszOut[-1] == '\n') {
-                write(pIncFile, ";{\r\n");
+                xwrite(pIncFile, ";{\r\n");
             }
             debug_printf("%u: begin block, new level=%u\n", pIncFile->dwLine, pIncFile->dwBraces);
         } else if (strcmp(pszToken, "}") == 0) {
             pIncFile->dwBraces--;
             if (pIncFile->pszOut[-1] == '\n') {
-                write(pIncFile, ";}\r\n");
+                xwrite(pIncFile, ";}\r\n");
             }
             if (pIncFile->pszEndMacro != NULL && pIncFile->dwBraces == pIncFile->dwBlockLevel) {
                 xprintf(pIncFile, "%s_END\r\n\r\n", pIncFile->pszEndMacro);
@@ -4094,9 +4147,9 @@ int ParseC(struct INCFILE* pIncFile) {
 
 exit:
     if (g_bIncludeComments && g_szComment[1] != '\0') {
-        write(pIncFile, g_szComment);
+        xwrite(pIncFile, g_szComment);
         g_szComment[0] = '\0';
-        write(pIncFile, "\r\n");
+        xwrite(pIncFile, "\r\n");
     }
     return 1;
 }
@@ -4157,16 +4210,16 @@ void AnalyzerIncFile(struct INCFILE* pIncFile) {
     }
 
 #ifdef INCLUDE_GENERATOR_INFO
-    write(pIncFile, ";--- include file created by h2incc " VERSION " (" COPYRIGHT ")\r\n");
+    xwrite(pIncFile, ";--- include file created by h2incc " VERSION " (" COPYRIGHT ")\r\n");
     stat(pIncFile->pszFullPath, &statbuf);
     xprintf(pIncFile, ";--- source file: %s, last modified: %u-%u-%u %u:%u\r\n", pIncFile->pszFullPath, 1900 + pIncFile->filetime.tm_year, pIncFile->filetime.tm_mon, pIncFile->filetime.tm_mday, pIncFile->filetime.tm_hour, pIncFile->filetime.tm_min);
-    write(pIncFile, ";--- cmdline used for creation:");
+    xwrite(pIncFile, ";--- cmdline used for creation:");
 
     for (int i = 1; i < g_argc; i++) {
-        write(pIncFile, " ");
-        write(pIncFile, g_argv[i]);
+        xwrite(pIncFile, " ");
+        xwrite(pIncFile, g_argv[i]);
     }
-    write(pIncFile, "\r\n\r\n");
+    xwrite(pIncFile, "\r\n\r\n");
 #endif
 
     int dwRC;
@@ -4179,7 +4232,7 @@ void AnalyzerIncFile(struct INCFILE* pIncFile) {
         fprintf(stderr, "%s, %u: unmatching if/endif\n", pIncFile->pszFileName, pIncFile->dwLine);
         pIncFile->dwErrors++;
     }
-    write(pIncFile, "\r\n");
+    xwrite(pIncFile, "\r\n");
     if (pIncFile->dwWarnings != 0) {
         xprintf(pIncFile, "--- warnings: %u\r\n", pIncFile->dwWarnings);
     }
@@ -4786,7 +4839,7 @@ void ParserIncFile(struct INCFILE* pIncFile) {
     *pIncFile->pszOut = '\0';
 }
 
-// write output buffer to file
+// xwrite output buffer to file
 // eax=0 if error
 
 int WriteIncFile(struct INCFILE* pIncFile, char* pszFileName) {
@@ -4812,7 +4865,7 @@ int WriteIncFile(struct INCFILE* pIncFile, char* pszFileName) {
         } else {
             size_t actual = fwrite(pIncFile->pBuffer1, 1, lenBuffer1, file);
             if (actual != lenBuffer1) {
-                fprintf(stderr, "%s: write error\n", pszFileName);
+                fprintf(stderr, "%s: xwrite error\n", pszFileName);
                 rc = 0;
             }
             if (pszFileName[0] == '\0') {
@@ -4824,7 +4877,7 @@ int WriteIncFile(struct INCFILE* pIncFile, char* pszFileName) {
     return rc;
 }
 
-// write to file
+// xwrite to file
 // eax=0 if error
 
 int WriteDefIncFile(struct INCFILE* pIncFile, char* pszFileName) {
@@ -4907,7 +4960,7 @@ static const char *find_last_occurrence_of_any(const char *s, const char *accept
 //  eax = 0 if error occured
 //  eax = _this if ok
 
-struct INCFILE* CreateIncFile(char* pszFileName, struct INCFILE* pParent) {
+struct INCFILE* CreateIncFile(const char* pszFileName, struct INCFILE* pParent) {
     FILE* file;
     size_t dwFileSize;
     struct INCFILE* pIncFile;
@@ -4919,14 +4972,6 @@ struct INCFILE* CreateIncFile(char* pszFileName, struct INCFILE* pParent) {
     memset(pIncFile, 0, sizeof(struct INCFILE));
     file = fopen(pszFileName, "r");
     if (file == NULL) {
-        if (g_pszIncDir) {
-            // _makepath(szFileName, NULL, g_pszIncDir, g_szName, g_szExt);
-            // file = fopen(szFileName, "r");
-            if (file != NULL) {
-                // pszFileName = szFileName;
-                goto file_exists;
-            }
-        }
         if (pParent != NULL) {
             uint32_t parentLine;
             char* parentFileName = GetFileNameIncFile(pParent, &parentLine);
@@ -4937,7 +4982,6 @@ struct INCFILE* CreateIncFile(char* pszFileName, struct INCFILE* pParent) {
         pIncFile = NULL;
         goto exit;
     }
-file_exists:
     pIncFile->pszFullPath = AddString(pszFileName);
 
     const char *incDirPathEnd = find_last_occurrence_of_any(pIncFile->pszFullPath, "/\\");

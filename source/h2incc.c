@@ -441,7 +441,7 @@ char g_szDir[256];
 char g_szName[256];
 char g_szExt[256];
 
-char* AddString(char* pszString) {
+char* AddString(const char* pszString) {
     size_t stringSize = strlen(pszString) + 1;
     size_t allocSize = stringSize;
     char* data = malloc(allocSize);
