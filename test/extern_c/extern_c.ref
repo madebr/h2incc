@@ -1,0 +1,14 @@
+SOME_MACRO	EQU	<>
+ifdef __cplusplus
+externdef SomeGlobalVariable1: ptr SOME_MACRO
+externdef SomeGlobalVariable2: ptr SOME_MACRO
+;extern "C"
+;{
+endif 
+externdef c SomeGlobalVariable3: ptr SOME_MACRO
+externdef c SomeGlobalVariable4: ptr SOME_MACRO
+ifdef __cplusplus
+;}
+endif 
+externdef SomeGlobalVariable5: ptr SOME_MACRO
+externdef SomeGlobalVariable6: ptr SOME_MACRO

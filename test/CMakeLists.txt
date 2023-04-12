@@ -41,6 +41,7 @@ set(REF_TEST_CASES
     empty_block_comment_only
     enum_anon_noval
     enum_anon_val_hex
+    extern_c
     extern_float
     extern_funcptr
     extern_double
