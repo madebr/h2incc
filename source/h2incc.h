@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "vector.h"
+
 #define VERSION     "v0.0.1"
 #define COPYRIGHT   "copyright 2022 madebr, copyright 2005-2009 japheth"
 
@@ -73,7 +75,7 @@ extern char g_szDir[256];
 extern char g_szName[256];
 extern char g_szExt[256];
 
-extern char* g_pszIncDir;
+extern struct vector *g_pszIncDirs;
 extern uint32_t g_dwStructSuffix;
 extern uint32_t g_dwDefCallConv;
 extern struct LIST* g_pStructures;

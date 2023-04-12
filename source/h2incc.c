@@ -36,7 +36,7 @@ char* g_pszFilespec;                        // filespec cmdline param
 char* g_pszIniPath;                         // -C cmdline ini path
 char* g_pszOutDir;                          // -O cmdline output directory
 char* g_pszOutFileName;                     // -o cmdline output filename
-char* g_pszIncDir;                          // -I cmdline include directory
+struct vector *g_pszIncDirs;                // -I cmdline include directories
 uint32_t g_dwStructSuffix;                  // number used for nameless structures
 uint32_t g_dwDefCallConv;                   // default calling convention
 struct StringLL* g_pInpFiles;               // linked list of processed input files
@@ -553,8 +553,8 @@ int getoption(char* pszArgument) {
                 return 1;
             }
             g_bCallConvExpected = 0;
-        } else  if (g_bIncDirExpected) {
-            g_pszIncDir = pszArgument;
+        } else if (g_bIncDirExpected) {
+            vector_charp_append(g_pszIncDirs, pszArgument);
             g_bIncDirExpected = 0;
         } else {
             char* prevFileSpec = g_pszFilespec;
@@ -1120,6 +1120,8 @@ int main(int argc, char** argv, char** envp) {
 
     g_rc = 1;
 
+    g_pszIncDirs = VECTOR_CHARP_CREATE();
+
     for (int i = 1; i < argc; i++) {
         if (getoption(argv[i])) {
             goto main_er;
@@ -1145,5 +1147,6 @@ main_er:
 
 exit:
     FreeProfileData();
+    vector_free(g_pszIncDirs, NULL);
     return g_rc;
 }
