@@ -20,6 +20,8 @@ add_library(h2incc_objects OBJECT
         source/list.c
         source/list.h
         source/util.h
+        source/vector.c
+        source/vector.h
 )
 set_target_properties(h2incc_objects
     PROPERTIES
