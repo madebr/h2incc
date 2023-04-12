@@ -38,6 +38,8 @@ struct INCFILE {
     struct LIST*    pDefs;                  // .DEF file content
     char*           pszFileName;            // file name
     char*           pszFullPath;            // full path
+    char*           pszDirPath;             // full dir path
+    uint64_t        path_uid;               // uid of file
     char*           pszLastToken;           //
     char*           pszImpSpec;             //
     char*           pszCallConv;            //
@@ -4889,6 +4891,17 @@ struct INCFILE* GetParentIncFile(struct INCFILE* pIncFile) {
     return pIncFile->pParent;
 }
 
+static const char *find_last_occurrence_of_any(const char *s, const char *accept) {
+    const char *current = s + strlen(s);
+    for (; current != s;) {
+        current--;
+        if (strchr(accept, *current) != NULL) {
+            return current;
+        }
+    }
+    return NULL;
+}
+
 // constructor include file object
 // returns:
 //  eax = 0 if error occured
@@ -4926,13 +4939,25 @@ struct INCFILE* CreateIncFile(char* pszFileName, struct INCFILE* pParent) {
     }
 file_exists:
     pIncFile->pszFullPath = AddString(pszFileName);
-    // _makepath(szFileName, NULL, NULL, g_szName, g_szExt);
-    // pIncFile->pszFileName = AddString(szFileName, 0);
-    pIncFile->pszFileName = AddString(pszFileName);
+
+    const char *incDirPathEnd = find_last_occurrence_of_any(pIncFile->pszFullPath, "/\\");
+    pIncFile->pszDirPath = NULL;
+    if (incDirPathEnd != NULL) {
+        pIncFile->pszDirPath = malloc(incDirPathEnd - pIncFile->pszFullPath + 2);
+        strncpy(pIncFile->pszDirPath, pIncFile->pszFullPath, incDirPathEnd - pIncFile->pszFullPath + 1);
+        pIncFile->pszDirPath[incDirPathEnd - pIncFile->pszFullPath + 1] = '\0';
+
+        pIncFile->pszFileName = malloc(strlen(pIncFile->pszFullPath) - (incDirPathEnd - pIncFile->pszFullPath));
+        strcpy(pIncFile->pszFileName, incDirPathEnd + 1);
+    } else {
+        pIncFile->pszDirPath = strdup("./");
+        pIncFile->pszFileName = AddString(pszFileName);
+    }
 
     struct stat fileStat;
     stat(pszFileName, &fileStat);
     gmtime_r(&fileStat.st_mtime, &pIncFile->filetime);
+    pIncFile->path_uid = fileStat.st_ino;
 
     dwFileSize = fileStat.st_size;
 
