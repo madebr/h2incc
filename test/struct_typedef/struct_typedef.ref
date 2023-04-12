@@ -1,4 +1,4 @@
-abc_t	struct 
+abc_t	struct
 next	DWORD	?
 a	SDWORD	?
 abc_t	ends

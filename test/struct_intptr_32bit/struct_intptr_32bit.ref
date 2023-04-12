@@ -1,4 +1,4 @@
-somestruct	struct 
+somestruct	struct
 a	DWORD	?
 b	DWORD	?
 c	DWORD	?

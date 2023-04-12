@@ -1,4 +1,4 @@
-abc_t	struct 
+abc_t	struct
 protoabc_t_member typedef proto  :SBYTE,:SDWORD,:ptr SBYTE,:ptr void
 pabc_t_member typedef ptr protoabc_t_member
 member	pabc_t_member	?

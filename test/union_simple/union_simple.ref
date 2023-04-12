@@ -1,4 +1,4 @@
-some_union	union 
+some_union	union
 a	SDWORD	?
 b	float	?
 c	REAL8	?

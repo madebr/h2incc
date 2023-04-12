@@ -1,4 +1,4 @@
-somestruct	struct 
+somestruct	struct
 a	QWORD	?
 b	QWORD	?
 c	QWORD	?

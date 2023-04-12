@@ -1,4 +1,4 @@
-abc	struct 
+abc	struct
 ifdef ABC
 a	SDWORD	?
 ifndef defined

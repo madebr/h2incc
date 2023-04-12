@@ -2803,7 +2803,11 @@ int ParseTypedefUnionStruct(struct INCFILE* pIncFile, char* pszToken, int bIsCla
         } else {
             pszAlignment = "";
         }
-        xprintf(pIncFile, "%s%s\t%s %s\r\n", pszType, pszSuffix, pszStruct, pszAlignment);
+        xprintf(pIncFile, "%s%s\t%s", pszType, pszSuffix, pszStruct);
+        if (pszAlignment[0] != '\0') {
+            xwrite(pIncFile, pszAlignment);
+        }
+        xwrite(pIncFile, "\r\n");
         if (bHasVTable) {
             xprintf(pIncFile, "\t%s ?\t;`vftable'\r\n", g_b64bit ? "QWORD" : "DWORD");
         }

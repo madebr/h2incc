@@ -1,9 +1,9 @@
-name_	struct 
+name_	struct
 align_	DWORD	?
 eax_	DWORD	?
 ebx_	DWORD	?
 name_	ends
-name2	struct 
+name2	struct
 align_	DWORD	?
 aligned	DWORD	?
 eax_	DWORD	?
