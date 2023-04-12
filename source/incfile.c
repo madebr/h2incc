@@ -4860,25 +4860,23 @@ int WriteIncFile(struct INCFILE* pIncFile, char* pszFileName) {
     }
 
     size_t lenBuffer1 = strlen(pIncFile->pBuffer1);
-    if (lenBuffer1) {
-        if (pszFileName[0] == '\0') {
-            file = stdout;
-        } else {
-            file = fopen(pszFileName, "w");
-        }
-        if (file == NULL) {
-            fprintf(stderr, "cannot create file %s\n", pszFileName);
+    if (pszFileName[0] == '\0') {
+        file = stdout;
+    } else {
+        file = fopen(pszFileName, "w");
+    }
+    if (file == NULL) {
+        fprintf(stderr, "cannot create file %s\n", pszFileName);
+        rc = 0;
+    } else {
+        size_t actual = fwrite(pIncFile->pBuffer1, 1, lenBuffer1, file);
+        if (actual != lenBuffer1) {
+            fprintf(stderr, "%s: xwrite error\n", pszFileName);
             rc = 0;
+        }
+        if (pszFileName[0] == '\0') {
         } else {
-            size_t actual = fwrite(pIncFile->pBuffer1, 1, lenBuffer1, file);
-            if (actual != lenBuffer1) {
-                fprintf(stderr, "%s: xwrite error\n", pszFileName);
-                rc = 0;
-            }
-            if (pszFileName[0] == '\0') {
-            } else {
-                fclose(file);
-            }
+            fclose(file);
         }
     }
     return rc;
